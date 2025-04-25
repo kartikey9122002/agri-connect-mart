@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import ProductGrid from '@/components/products/ProductGrid';
 import ProductFilters, { FiltersType } from '@/components/products/ProductFilters';
@@ -151,8 +152,8 @@ const ProductsPage = () => {
       );
     }
     
-    // Category filter
-    if (filters.category) {
+    // Category filter - updated to handle the 'all' value
+    if (filters.category && filters.category !== 'all') {
       filtered = filtered.filter(product => product.category === filters.category);
     }
     

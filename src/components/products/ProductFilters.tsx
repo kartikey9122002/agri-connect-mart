@@ -45,7 +45,9 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({ onFilterChange, categor
   };
 
   const handlePriceChange = (value: number[]) => {
-    const newFilters = { ...filters, priceRange: [value[0], value[1] || filters.priceRange[1]] };
+    // Ensure we always have two values for the price range
+    const priceRange: [number, number] = [value[0], value[1] || filters.priceRange[1]];
+    const newFilters = { ...filters, priceRange };
     setFilters(newFilters);
     onFilterChange(newFilters);
   };
@@ -60,7 +62,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({ onFilterChange, categor
     const newFilters = {
       search: '',
       category: '',
-      priceRange: [0, 1000],
+      priceRange: [0, 1000] as [number, number],
       sortBy: 'featured',
     };
     setFilters(newFilters);
@@ -103,7 +105,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({ onFilterChange, categor
             <SelectValue placeholder="All categories" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All categories</SelectItem>
+            <SelectItem value="all">All categories</SelectItem>
             {categories.map(category => (
               <SelectItem key={category} value={category}>{category}</SelectItem>
             ))}
