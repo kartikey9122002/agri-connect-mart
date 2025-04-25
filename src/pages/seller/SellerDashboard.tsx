@@ -12,8 +12,10 @@ import {
   MessageSquare, 
   FileText,
   Plus,
-  ChevronRight
+  ChevronRight,
+  TrendingUp
 } from 'lucide-react';
+import { Product } from '@/types';
 
 const mockProducts: Product[] = [
   {
@@ -26,8 +28,8 @@ const mockProducts: Product[] = [
     sellerId: 'seller-1',
     sellerName: 'Farmer John',
     status: 'approved',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: '2025-03-15',
+    updatedAt: '2025-03-15'
   },
   {
     id: '2',
@@ -59,7 +61,7 @@ const mockProducts: Product[] = [
 
 const SellerDashboard = () => {
   const { user } = useAuth();
-  const [products] = useState<Product[]>(mockProducts);
+  const [activeProducts, setActiveProducts] = useState<Product[]>(mockProducts);
   const [tab, setTab] = useState('overview');
 
   return (
@@ -97,7 +99,7 @@ const SellerDashboard = () => {
                 <div className="flex items-center">
                   <Package className="h-8 w-8 text-agrigreen-600 mr-3" />
                   <div>
-                    <p className="text-3xl font-bold">{products.length}</p>
+                    <p className="text-3xl font-bold">{activeProducts.length}</p>
                     <p className="text-sm text-gray-500">Listed products</p>
                   </div>
                 </div>
@@ -113,7 +115,7 @@ const SellerDashboard = () => {
                 <div className="flex items-center">
                   <Package className="h-8 w-8 text-green-600 mr-3" />
                   <div>
-                    <p className="text-3xl font-bold">{products.filter(p => p.status === 'approved').length}</p>
+                    <p className="text-3xl font-bold">{activeProducts.filter(p => p.status === 'approved').length}</p>
                     <p className="text-sm text-gray-500">Approved</p>
                   </div>
                 </div>
@@ -129,7 +131,7 @@ const SellerDashboard = () => {
                 <div className="flex items-center">
                   <Package className="h-8 w-8 text-yellow-500 mr-3" />
                   <div>
-                    <p className="text-3xl font-bold">{products.filter(p => p.status === 'pending').length}</p>
+                    <p className="text-3xl font-bold">{activeProducts.filter(p => p.status === 'pending').length}</p>
                     <p className="text-sm text-gray-500">Pending</p>
                   </div>
                 </div>
@@ -161,7 +163,7 @@ const SellerDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {products.slice(0, 3).map((product) => (
+                  {activeProducts.slice(0, 3).map((product) => (
                     <div key={product.id} className="flex items-center gap-4 p-3 rounded-md hover:bg-gray-50">
                       <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden">
                         <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
@@ -296,7 +298,7 @@ const SellerDashboard = () => {
                   <div className="col-span-2">Status</div>
                   <div className="col-span-1"></div>
                 </div>
-                {products.map((product) => (
+                {activeProducts.map((product) => (
                   <div key={product.id} className="grid grid-cols-12 p-4 border-b items-center hover:bg-muted/20">
                     <div className="col-span-5 flex items-center gap-3">
                       <div className="w-10 h-10 bg-gray-100 rounded overflow-hidden">
@@ -322,7 +324,7 @@ const SellerDashboard = () => {
                     </div>
                   </div>
                 ))}
-                {products.length === 0 && (
+                {activeProducts.length === 0 && (
                   <div className="p-8 text-center text-gray-500">
                     <Package className="h-12 w-12 mx-auto text-gray-400 mb-3" />
                     <p>No products found</p>

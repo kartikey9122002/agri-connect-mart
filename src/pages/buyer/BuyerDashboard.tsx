@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,7 +15,9 @@ import {
   TrendingUp,
   ShoppingCart,
   ChevronRight,
-  Plus 
+  Plus,
+  Truck,
+  MapPin
 } from 'lucide-react';
 
 const orders = [
@@ -310,7 +313,7 @@ const BuyerDashboard = () => {
             <CardContent>
               {orders.filter(order => order.status === 'processing').length === 0 ? (
                 <div className="text-center py-12">
-                  <Map className="h-12 w-12 mx-auto text-gray-400" />
+                  <MapPin className="h-12 w-12 mx-auto text-gray-400" />
                   <h3 className="mt-4 text-lg font-medium">No active deliveries</h3>
                   <p className="text-gray-500 mt-2">
                     You don't have any orders in transit at the moment.
