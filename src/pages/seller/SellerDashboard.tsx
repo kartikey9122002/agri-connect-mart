@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,10 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Package, TrendingUp, MessageSquare, FileText } from 'lucide-react';
-import { Product } from '@/types';
+import { Input } from '@/components/ui/input';
+import { 
+  Users, 
+  Package, 
+  MessageSquare, 
+  FileText,
+  Plus,
+  ChevronRight
+} from 'lucide-react';
 
-// Mock data for seller products
 const mockProducts: Product[] = [
   {
     id: '1',

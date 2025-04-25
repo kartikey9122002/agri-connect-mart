@@ -1,21 +1,22 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { 
-  ShoppingBag, 
+  Users, 
   Package, 
-  Truck, 
-  Map, 
   MessageSquare, 
-  ChevronRight 
+  FileText, 
+  TrendingUp,
+  ShoppingCart,
+  ChevronRight,
+  Plus 
 } from 'lucide-react';
 
-// Mock orders data
 const orders = [
   {
     id: 'ORD-001',
@@ -103,7 +104,7 @@ const BuyerDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center">
-                    <ShoppingBag className="h-8 w-8 text-agriorange-500 mr-3" />
+                    <ShoppingCart className="h-8 w-8 text-agriorange-500 mr-3" />
                     <div>
                       <p className="text-3xl font-bold">{orders.length}</p>
                       <p className="text-sm text-gray-500">Orders placed</p>
@@ -157,7 +158,7 @@ const BuyerDashboard = () => {
               <CardContent>
                 {orders.length === 0 ? (
                   <div className="text-center py-12">
-                    <ShoppingBag className="h-12 w-12 mx-auto text-gray-400" />
+                    <ShoppingCart className="h-12 w-12 mx-auto text-gray-400" />
                     <h3 className="mt-4 text-lg font-medium">No orders yet</h3>
                     <p className="text-gray-500 mt-2">Start shopping to see your orders here.</p>
                     <Button asChild className="mt-6 bg-agrigreen-600 hover:bg-agrigreen-700">
