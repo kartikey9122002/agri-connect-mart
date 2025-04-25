@@ -28,11 +28,8 @@ const LoginForm = () => {
       });
       navigate('/');
     } catch (error) {
-      toast({
-        title: 'Login failed',
-        description: 'Please check your credentials and try again.',
-        variant: 'destructive',
-      });
+      console.error('Login failed:', error);
+      // Error toast is shown in the AuthContext
     }
   };
 
@@ -107,7 +104,7 @@ const LoginForm = () => {
         <p className="text-sm text-gray-600 mb-1">Admin: admin@agri.com</p>
         <p className="text-sm text-gray-600 mb-1">Seller: seller@agri.com</p>
         <p className="text-sm text-gray-600">Buyer: buyer@agri.com</p>
-        <p className="text-xs text-gray-500 mt-2">Use any password to login</p>
+        <p className="text-xs text-gray-500 mt-2">Use password '123456' to login</p>
       </div>
     </form>
   );

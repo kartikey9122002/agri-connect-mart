@@ -40,11 +40,8 @@ const RegisterForm = () => {
       });
       navigate('/');
     } catch (error) {
-      toast({
-        title: 'Registration failed',
-        description: 'There was an error creating your account. Please try again.',
-        variant: 'destructive',
-      });
+      console.error('Registration error:', error);
+      // Error toast is shown in the AuthContext
     }
   };
 
