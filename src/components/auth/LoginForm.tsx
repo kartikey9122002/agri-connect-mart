@@ -1,6 +1,4 @@
-
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,21 +12,23 @@ interface LoginFormInputs {
 
 const LoginForm = () => {
   const { login } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormInputs>();
 
   const onSubmit = async (data: LoginFormInputs) => {
     try {
+      console.log("Attempting login with:", data.email);
       await login(data.email, data.password);
+      
       toast({
         title: 'Login successful',
         description: 'You have been successfully logged in.',
         variant: 'default',
       });
-      navigate('/');
+      
+      // No navigation here - let the LoginPage handle redirection based on role
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Login form error:', error);
       // Error toast is shown in the AuthContext
     }
   };

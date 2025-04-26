@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
+        console.log("Auth state change event:", event);
         setSession(currentSession);
         
         if (currentSession?.user) {
@@ -50,6 +51,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               setUser(null);
               return;
             }
+
+            console.log("User profile fetched:", profile);
 
             // Update user state with combined auth and profile data
             setUser({
@@ -73,6 +76,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const initializeAuth = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
+        console.log("Initial session check:", initialSession ? "Session exists" : "No session");
         setSession(initialSession);
         
         if (initialSession?.user) {
@@ -83,6 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .single();
 
           if (!error && profile) {
+            console.log("Initial profile data:", profile);
             setUser({
               id: initialSession.user.id,
               email: initialSession.user.email || '',
@@ -90,6 +95,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               role: profile.role || 'buyer',
               createdAt: initialSession.user.created_at
             });
+          } else {
+            console.error("Error fetching initial profile:", error);
           }
         }
       } catch (error) {
@@ -125,6 +132,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw error;
       }
       
+      console.log("Login successful:", data);
       // Auth state listener will handle setting the user
       return;
     } catch (error) {
