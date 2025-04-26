@@ -24,7 +24,7 @@ interface RegisterFormInputs {
 }
 
 const RegisterForm = () => {
-  const { register: registerUser } = useAuth();
+  const { register: registerUser, isLoading } = useAuth();
   const [role, setRole] = useState<UserRole>('buyer');
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -33,12 +33,16 @@ const RegisterForm = () => {
 
   const onSubmit = async (data: RegisterFormInputs) => {
     try {
+      console.log("Registering with data:", { email: data.email, role });
       await registerUser(data.email, data.password, data.name, role);
+      
       toast({
         title: 'Registration successful',
-        description: 'Your account has been created. You are now logged in.',
+        description: 'Your account has been created. You will be redirected to your dashboard.',
       });
-      navigate('/');
+      
+      // The AuthContext will handle redirection based on role
+      // No need to navigate here since LoginPage will handle it based on isAuthenticated state
     } catch (error) {
       console.error('Registration error:', error);
       // Error toast is shown in the AuthContext
@@ -135,9 +139,9 @@ const RegisterForm = () => {
       <Button
         type="submit"
         className="w-full bg-agrigreen-600 hover:bg-agrigreen-700"
-        disabled={isSubmitting}
+        disabled={isSubmitting || isLoading}
       >
-        {isSubmitting ? 'Creating Account...' : 'Create Account'}
+        {isSubmitting || isLoading ? 'Creating Account...' : 'Create Account'}
       </Button>
 
       <div className="text-center mt-4">

@@ -1,18 +1,33 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import RegisterForm from '@/components/auth/RegisterForm';
 
 const RegisterPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/');
+  useEffect(() => {
+    if (isAuthenticated && user && !isLoading) {
+      console.log("User authenticated in RegisterPage, redirecting based on role:", user.role);
+      
+      // Redirect based on user role
+      switch (user.role) {
+        case 'admin':
+          navigate('/admin-dashboard');
+          break;
+        case 'seller':
+          navigate('/seller-dashboard');
+          break;
+        case 'buyer':
+          navigate('/buyer-dashboard');
+          break;
+        default:
+          navigate('/');
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, isLoading, navigate]);
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-agricream p-4">

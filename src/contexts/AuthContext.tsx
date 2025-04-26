@@ -182,6 +182,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw error;
       }
       
+      console.log("Registration successful:", data);
+      toast({
+        title: 'Registration successful',
+        description: 'Your account has been created. You will be redirected to your dashboard.',
+      });
+      
       // The profile will be created via the database trigger
       // Auth state listener will handle setting the user
       return;
