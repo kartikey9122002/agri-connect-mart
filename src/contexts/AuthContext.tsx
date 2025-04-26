@@ -54,12 +54,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             console.log("User profile fetched:", profile);
 
+            // Ensure role is a valid UserRole type
+            const userRole = profile.role as string;
+            const validRole: UserRole = 
+              userRole === 'seller' ? 'seller' :
+              userRole === 'admin' ? 'admin' : 'buyer';
+
             // Update user state with combined auth and profile data
             setUser({
               id: currentSession.user.id,
               email: currentSession.user.email || '',
               name: profile.full_name || '',
-              role: profile.role || 'buyer',
+              role: validRole,
               createdAt: currentSession.user.created_at
             });
           } catch (error) {
@@ -88,11 +94,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
           if (!error && profile) {
             console.log("Initial profile data:", profile);
+            
+            // Ensure role is a valid UserRole type
+            const userRole = profile.role as string;
+            const validRole: UserRole = 
+              userRole === 'seller' ? 'seller' :
+              userRole === 'admin' ? 'admin' : 'buyer';
+
             setUser({
               id: initialSession.user.id,
               email: initialSession.user.email || '',
               name: profile.full_name || '',
-              role: profile.role || 'buyer',
+              role: validRole,
               createdAt: initialSession.user.created_at
             });
           } else {
