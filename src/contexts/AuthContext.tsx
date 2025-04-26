@@ -38,6 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(currentSession);
         
         if (currentSession?.user) {
+          setIsLoading(true); // Set loading while we fetch profile data
           try {
             // Get user profile data
             const { data: profile, error } = await supabase
@@ -49,6 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (error) {
               console.error('Error fetching user profile:', error);
               setUser(null);
+              setIsLoading(false);
               return;
             }
 
@@ -89,6 +91,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(initialSession);
         
         if (initialSession?.user) {
+          setIsLoading(true); // Ensure loading state is set
           const { data: profile, error } = await supabase
             .from('profiles')
             .select('*')
@@ -113,6 +116,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             });
           } else {
             console.error("Error fetching initial profile:", error);
+            setUser(null);
           }
         }
       } catch (error) {
@@ -133,6 +137,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(true);
     
     try {
+      console.log("AuthContext: Attempting login for", email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -140,16 +146,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) {
         console.error('Login error:', error);
-        toast({
-          title: 'Login failed',
-          description: error.message,
-          variant: 'destructive',
-        });
         throw error;
       }
       
       console.log("Login successful:", data);
-      // Auth state listener will handle setting the user
+      
+      // Auth state listener will handle setting the user and redirecting
+      toast({
+        title: 'Login successful',
+        description: 'Welcome back to AgriConnect Mart!',
+      });
+      
       return;
     } catch (error) {
       console.error('Login failed:', error);
@@ -202,6 +209,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
+      setIsLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Logout error:', error);
@@ -214,12 +222,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       setUser(null);
-      // Clear any local storage if needed
-      localStorage.removeItem('agri-connect-user');
+      toast({
+        title: 'Logout successful',
+        description: 'You have been logged out successfully.',
+      });
       
     } catch (error) {
       console.error('Logout failed:', error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

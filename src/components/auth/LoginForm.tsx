@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,25 +12,29 @@ interface LoginFormInputs {
 }
 
 const LoginForm = () => {
-  const { login } = useAuth();
+  const { login, isLoading } = useAuth();
   const { toast } = useToast();
+  const [loginError, setLoginError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormInputs>();
 
   const onSubmit = async (data: LoginFormInputs) => {
     try {
+      setLoginError(null);
       console.log("Attempting login with:", data.email);
       await login(data.email, data.password);
       
-      toast({
-        title: 'Login successful',
-        description: 'You have been successfully logged in.',
-        variant: 'default',
-      });
+      console.log("Login successful, redirecting will be handled by LoginPage");
       
       // No navigation here - let the LoginPage handle redirection based on role
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login form error:', error);
-      // Error toast is shown in the AuthContext
+      setLoginError(error?.message || 'Login failed. Please try again.');
+      
+      toast({
+        title: 'Login failed',
+        description: error?.message || 'An error occurred during login. Please check your credentials and try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -82,12 +87,18 @@ const LoginForm = () => {
         )}
       </div>
 
+      {loginError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-600">{loginError}</p>
+        </div>
+      )}
+
       <Button
         type="submit"
         className="w-full bg-agrigreen-600 hover:bg-agrigreen-700"
-        disabled={isSubmitting}
+        disabled={isSubmitting || isLoading}
       >
-        {isSubmitting ? 'Logging in...' : 'Login'}
+        {isSubmitting || isLoading ? 'Logging in...' : 'Login'}
       </Button>
       
       <div className="text-center mt-4">

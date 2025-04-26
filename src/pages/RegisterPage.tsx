@@ -9,8 +9,9 @@ const RegisterPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Only redirect if authentication is confirmed and loading is complete
     if (isAuthenticated && user && !isLoading) {
-      console.log("User authenticated in RegisterPage, redirecting based on role:", user.role);
+      console.log("RegisterPage: User authenticated, redirecting based on role:", user.role);
       
       // Redirect based on user role
       switch (user.role) {
