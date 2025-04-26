@@ -71,9 +71,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           } catch (error) {
             console.error('Error in auth state change:', error);
             setUser(null);
+          } finally {
+            setIsLoading(false);
           }
         } else {
           setUser(null);
+          setIsLoading(false);
         }
       }
     );
@@ -174,19 +177,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) {
         console.error('Registration error:', error);
-        toast({
-          title: 'Registration failed',
-          description: error.message,
-          variant: 'destructive',
-        });
         throw error;
       }
       
+      // Check if user is already registered
+      if (data.user?.identities && data.user.identities.length === 0) {
+        const errorMessage = "This email is already registered. Please try logging in.";
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+      
       console.log("Registration successful:", data);
-      toast({
-        title: 'Registration successful',
-        description: 'Your account has been created. You will be redirected to your dashboard.',
-      });
       
       // The profile will be created via the database trigger
       // Auth state listener will handle setting the user

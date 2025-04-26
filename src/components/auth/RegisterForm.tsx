@@ -28,24 +28,42 @@ const RegisterForm = () => {
   const [role, setRole] = useState<UserRole>('buyer');
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<RegisterFormInputs>();
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting }, reset } = useForm<RegisterFormInputs>();
   const password = watch('password');
 
   const onSubmit = async (data: RegisterFormInputs) => {
     try {
-      console.log("Registering with data:", { email: data.email, role });
+      setRegistrationError(null);
+      console.log("Starting registration with data:", { email: data.email, role });
+      
       await registerUser(data.email, data.password, data.name, role);
       
+      console.log("Registration completed successfully");
       toast({
         title: 'Registration successful',
         description: 'Your account has been created. You will be redirected to your dashboard.',
       });
       
       // The AuthContext will handle redirection based on role
-      // No need to navigate here since LoginPage will handle it based on isAuthenticated state
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
-      // Error toast is shown in the AuthContext
+      setRegistrationError(error?.message || 'Registration failed. Please try again.');
+      
+      // Reset form fields except email and name if there's an error
+      if (error?.message?.includes('already registered')) {
+        toast({
+          title: 'Registration failed',
+          description: 'This email is already registered. Please try logging in instead.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Registration failed',
+          description: error?.message || 'An error occurred during registration. Please try again.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
@@ -135,6 +153,12 @@ const RegisterForm = () => {
           <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
         )}
       </div>
+
+      {registrationError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-600">{registrationError}</p>
+        </div>
+      )}
 
       <Button
         type="submit"
