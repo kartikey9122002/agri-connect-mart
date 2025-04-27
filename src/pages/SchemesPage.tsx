@@ -1,74 +1,12 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { FileText, ArrowRight, Users, Tractor, Calendar, ChevronRight } from 'lucide-react';
-
-// Mock data for government schemes
-const schemes = [
-  {
-    id: '1',
-    title: 'National Agriculture Market (e-NAM)',
-    description: 'A pan-India electronic trading portal that networks existing agricultural markets to create a unified national market for agricultural commodities.',
-    eligibility: 'All farmers, traders, and processors',
-    benefits: 'Transparent price discovery, increased market access, reduced intermediaries',
-    applicationUrl: '#',
-    category: 'Market Access',
-    deadline: '2025-12-31'
-  },
-  {
-    id: '2',
-    title: 'PM Kisan Samman Nidhi Yojana',
-    description: 'Financial benefit of ₹6000 per year in three equal installments to eligible farmer families.',
-    eligibility: 'All land-holding farmers with certain exclusions',
-    benefits: 'Direct financial support for agricultural expenses and household needs',
-    applicationUrl: '#',
-    category: 'Financial Aid',
-    deadline: 'Ongoing'
-  },
-  {
-    id: '3',
-    title: 'Soil Health Card Scheme',
-    description: 'Government scheme to issue soil cards to farmers which will carry crop-wise recommendations of nutrients and fertilizers required.',
-    eligibility: 'All farmers with agricultural land',
-    benefits: 'Improved soil health, optimized fertilizer usage, higher crop yields',
-    applicationUrl: '#',
-    category: 'Agricultural Support',
-    deadline: 'Ongoing'
-  },
-  {
-    id: '4',
-    title: 'Pradhan Mantri Fasal Bima Yojana',
-    description: 'A crop insurance scheme that aims to reduce the risk of financial loss faced by farmers due to crop failure or damage.',
-    eligibility: 'All farmers growing notified crops',
-    benefits: 'Financial security against crop damage due to natural calamities',
-    applicationUrl: '#',
-    category: 'Insurance',
-    deadline: 'Seasonal'
-  },
-  {
-    id: '5',
-    title: 'National Mission for Sustainable Agriculture (NMSA)',
-    description: 'Promotes sustainable agriculture through climate change adaptation measures, water use efficiency, soil health management, and synergy with other missions.',
-    eligibility: 'All farmers with focus on rain-fed areas',
-    benefits: 'Support for adopting climate-resilient agricultural practices',
-    applicationUrl: '#',
-    category: 'Sustainable Farming',
-    deadline: 'Ongoing'
-  },
-  {
-    id: '6',
-    title: 'Paramparagat Krishi Vikas Yojana',
-    description: 'Scheme to promote organic farming and improved soil health through the use of traditional methods.',
-    eligibility: 'All farmers willing to adopt organic farming',
-    benefits: 'Financial assistance for organic inputs, certification, and marketing of organic produce',
-    applicationUrl: '#',
-    category: 'Organic Farming',
-    deadline: '2025-09-30'
-  }
-];
+import { supabase } from '@/integrations/supabase/client';
+import { GovScheme } from '@/types';
+import { useToast } from '@/components/ui/use-toast';
 
 const categories = [
   'All Categories',
@@ -81,16 +19,121 @@ const categories = [
 ];
 
 const SchemesPage = () => {
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [selectedCategory, setSelectedCategory] = React.useState('All Categories');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [schemes, setSchemes] = useState<GovScheme[]>([]);
+  const [filteredSchemes, setFilteredSchemes] = useState<GovScheme[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
-  const filteredSchemes = schemes.filter(scheme => {
-    const matchesSearch = scheme.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          scheme.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'All Categories' || scheme.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+  // Fetch schemes from the database
+  useEffect(() => {
+    const fetchSchemes = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('government_schemes')
+          .select('*');
+
+        if (error) {
+          throw error;
+        }
+
+        if (data && data.length > 0) {
+          setSchemes(data as GovScheme[]);
+          setFilteredSchemes(data as GovScheme[]);
+        } else {
+          // Use the mock data if no schemes are in the database yet
+          useDefaultSchemes();
+        }
+      } catch (error) {
+        console.error('Error fetching government schemes:', error);
+        toast({
+          title: 'Failed to load schemes',
+          description: 'There was an error loading government schemes. Please try again.',
+          variant: 'destructive',
+        });
+        // Use mock data as fallback
+        useDefaultSchemes();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSchemes();
+  }, [toast]);
+
+  // Use mock data temporarily until real data is available
+  const useDefaultSchemes = () => {
+    const defaultSchemes = [
+      {
+        id: '1',
+        title: 'National Agriculture Market (e-NAM)',
+        description: 'A pan-India electronic trading portal that networks existing agricultural markets to create a unified national market for agricultural commodities.',
+        eligibility: 'All farmers, traders, and processors',
+        benefits: 'Transparent price discovery, increased market access, reduced intermediaries',
+        applicationUrl: '#',
+        category: 'Market Access',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: '2',
+        title: 'PM Kisan Samman Nidhi Yojana',
+        description: 'Financial benefit of ₹6000 per year in three equal installments to eligible farmer families.',
+        eligibility: 'All land-holding farmers with certain exclusions',
+        benefits: 'Direct financial support for agricultural expenses and household needs',
+        applicationUrl: '#',
+        category: 'Financial Aid',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      // Keep a few default schemes for now - they will be replaced by real data later
+      {
+        id: '3',
+        title: 'Soil Health Card Scheme',
+        description: 'Government scheme to issue soil cards to farmers which will carry crop-wise recommendations of nutrients and fertilizers required.',
+        eligibility: 'All farmers with agricultural land',
+        benefits: 'Improved soil health, optimized fertilizer usage, higher crop yields',
+        applicationUrl: '#',
+        category: 'Agricultural Support',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+    setSchemes(defaultSchemes);
+    setFilteredSchemes(defaultSchemes);
+  };
+
+  // Filter schemes based on search and category
+  useEffect(() => {
+    if (schemes.length > 0) {
+      const filtered = schemes.filter(scheme => {
+        const matchesSearch = scheme.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             scheme.description.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = selectedCategory === 'All Categories' || scheme.category === selectedCategory;
+        
+        return matchesSearch && matchesCategory;
+      });
+      setFilteredSchemes(filtered);
+    }
+  }, [searchTerm, selectedCategory, schemes]);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+              <div key={item} className="h-64 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -198,21 +241,6 @@ const SchemesPage = () => {
                     <Tractor className="h-4 w-4 text-agrigreen-600 mt-0.5" />
                     <p><span className="font-medium">Benefits:</span> {scheme.benefits}</p>
                   </div>
-                  {scheme.deadline && (
-                    <div className="flex items-start gap-2">
-                      <Calendar className="h-4 w-4 text-agrigreen-600 mt-0.5" />
-                      <p>
-                        <span className="font-medium">Deadline:</span>{' '}
-                        {scheme.deadline === 'Ongoing' || scheme.deadline === 'Seasonal'
-                          ? scheme.deadline
-                          : new Date(scheme.deadline).toLocaleDateString('en-IN', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                            })}
-                      </p>
-                    </div>
-                  )}
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between border-t pt-4">

@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/select';
 import { ChevronLeft, Upload, X, Info } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProductFormInputs {
   name: string;
@@ -40,11 +42,13 @@ const categories = [
 const AddProduct = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const { register, handleSubmit, formState: { errors } } = useForm<ProductFormInputs>();
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [category, setCategory] = useState('');
   const [imageError, setImageError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -82,20 +86,85 @@ const AddProduct = () => {
     setImageError('');
   };
 
+  const uploadImages = async (productId: string): Promise<string[]> => {
+    const imageUrls: string[] = [];
+
+    for (let i = 0; i < imageFiles.length; i++) {
+      const file = imageFiles[i];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${productId}/${Date.now()}-${i}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (error) {
+        console.error('Error uploading image:', error);
+        throw new Error(`Error uploading image ${i + 1}: ${error.message}`);
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      imageUrls.push(publicUrl);
+    }
+
+    return imageUrls;
+  };
+
   const onSubmit = async (data: ProductFormInputs) => {
     // Validate image count
-    if (imageFiles.length < 5) {
-      setImageError('Please upload at least 5 images');
+    if (imageFiles.length === 0) {
+      setImageError('Please upload at least one image');
       return;
     }
 
-    // Form is valid, prepare to submit
+    if (!user) {
+      toast({
+        title: 'Authentication error',
+        description: 'You must be logged in to add products',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real app, this would upload images and create product in database
-      
+      // Add product to database
+      const { data: product, error } = await supabase
+        .from('products')
+        .insert({
+          name: data.name,
+          description: data.description,
+          price: data.price,
+          category: category,
+          seller_id: user.id,
+          status: 'pending', // Pending approval
+          images: [] // Will update with image URLs after upload
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to create product: ${error.message}`);
+      }
+
+      // Upload images and get URLs
+      const imageUrls = await uploadImages(product.id);
+
+      // Update product with image URLs
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ images: imageUrls })
+        .eq('id', product.id);
+
+      if (updateError) {
+        throw new Error(`Failed to update product with images: ${updateError.message}`);
+      }
+
       toast({
         title: 'Product submitted',
         description: 'Your product has been submitted for admin approval.',
@@ -103,11 +172,14 @@ const AddProduct = () => {
       
       navigate('/seller-dashboard');
     } catch (error) {
+      console.error('Error submitting product:', error);
       toast({
         title: 'Submission failed',
-        description: 'There was an error submitting your product. Please try again.',
+        description: error instanceof Error ? error.message : 'There was an error submitting your product. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -229,10 +301,10 @@ const AddProduct = () => {
                     </Button>
                     <Button 
                       type="submit" 
-                      disabled={!category || imageFiles.length < 5}
+                      disabled={isSubmitting || !category || imageFiles.length === 0}
                       className="bg-agrigreen-600 hover:bg-agrigreen-700"
                     >
-                      Submit for Approval
+                      {isSubmitting ? 'Submitting...' : 'Submit for Approval'}
                     </Button>
                   </div>
                 </div>
@@ -246,7 +318,7 @@ const AddProduct = () => {
             <CardHeader>
               <CardTitle>Product Images</CardTitle>
               <CardDescription>
-                Upload at least 5 images of your product
+                Upload at least one image of your product
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -279,7 +351,7 @@ const AddProduct = () => {
                 )}
                 
                 <div className="text-sm text-gray-500 flex items-center gap-2">
-                  <span>{imageFiles.length} of 5 required images uploaded</span>
+                  <span>{imageFiles.length} images uploaded</span>
                 </div>
 
                 {imagePreviews.length > 0 && (

@@ -27,6 +27,7 @@ import AddProduct from "@/pages/seller/AddProduct";
 
 // Admin Pages
 import AdminDashboard from "@/pages/admin/AdminDashboard";
+import ProductApproval from "@/pages/admin/ProductApproval";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,9 @@ const AppRoutes = () => {
           {/* Admin Routes */}
           <Route path="/admin-dashboard" element={
             <ProtectedRoute element={<AdminDashboard />} requiredRole="admin" />
+          } />
+          <Route path="/admin/products/approval" element={
+            <ProtectedRoute element={<ProductApproval />} requiredRole="admin" />
           } />
           
           {/* 404 Route */}

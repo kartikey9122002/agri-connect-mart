@@ -1,142 +1,74 @@
-
 import React, { useState, useEffect } from 'react';
 import ProductGrid from '@/components/products/ProductGrid';
 import ProductFilters, { FiltersType } from '@/components/products/ProductFilters';
 import { Product } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
-// Mock data for initial development - will be replaced with actual API calls
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Organic Rice',
-    description: 'Premium quality organic rice grown without pesticides',
-    price: 120,
-    images: ['https://images.unsplash.com/photo-1586201375761-83865001e31c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'],
-    category: 'Grains',
-    sellerId: 'seller-1',
-    sellerName: 'Farmer John',
-    status: 'approved',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    name: 'Fresh Tomatoes',
-    description: 'Juicy, ripe tomatoes picked at peak freshness',
-    price: 40,
-    images: ['https://images.unsplash.com/photo-1582284540020-8acbe03f4924?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1335&q=80'],
-    category: 'Vegetables',
-    sellerId: 'seller-2',
-    sellerName: 'Green Acres Farm',
-    status: 'approved',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '3',
-    name: 'Raw Honey',
-    description: 'Unprocessed, pure honey from wildflower meadows',
-    price: 250,
-    images: ['https://images.unsplash.com/photo-1471943311424-646960669fbc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'],
-    category: 'Honey & Syrup',
-    sellerId: 'seller-3',
-    sellerName: 'Sweet Valley Apiaries',
-    status: 'approved',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '4',
-    name: 'Fresh Apples',
-    description: 'Crisp, sweet apples picked from our orchard',
-    price: 80,
-    images: ['https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'],
-    category: 'Fruits',
-    sellerId: 'seller-1',
-    sellerName: 'Farmer John',
-    status: 'approved',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '5',
-    name: 'Organic Wheat Flour',
-    description: 'Stone-ground wheat flour from organically grown wheat',
-    price: 65,
-    images: ['https://images.unsplash.com/photo-1605133589929-1794e19058eb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1780&q=80'],
-    category: 'Grains',
-    sellerId: 'seller-4',
-    sellerName: 'Heritage Mill Farms',
-    status: 'approved',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '6',
-    name: 'Farm Fresh Milk',
-    description: 'Non-homogenized, pasteurized milk from grass-fed cows',
-    price: 60,
-    images: ['https://images.unsplash.com/photo-1563636619-e9143da7973b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1172&q=80'],
-    category: 'Dairy',
-    sellerId: 'seller-5',
-    sellerName: 'Green Meadow Dairy',
-    status: 'approved',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '7',
-    name: 'Organic Carrots',
-    description: 'Sweet and crunchy organically grown carrots',
-    price: 35,
-    images: ['https://images.unsplash.com/photo-1582515073490-39981397c445?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1169&q=80'],
-    category: 'Vegetables',
-    sellerId: 'seller-2',
-    sellerName: 'Green Acres Farm',
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '8',
-    name: 'Fresh Farm Eggs',
-    description: 'Free-range eggs from pasture-raised chickens',
-    price: 90,
-    images: ['https://images.unsplash.com/photo-1489734353536-27e3e5b51d41?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1171&q=80'],
-    category: 'Dairy',
-    sellerId: 'seller-1',
-    sellerName: 'Farmer John',
-    status: 'approved',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
+const categories = [
+  'Fruits',
+  'Vegetables',
+  'Grains',
+  'Dairy', 
+  'Meat',
+  'Honey & Syrup',
+  'Herbs & Spices',
+  'Nuts & Seeds',
+  'Oils',
+  'Other'
 ];
-
-const categories = ['Fruits', 'Vegetables', 'Grains', 'Dairy', 'Meat', 'Honey & Syrup'];
 
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
-  // Simulating API fetch
+  // Fetch products from Supabase
   useEffect(() => {
     const fetchProducts = async () => {
       setIsLoading(true);
       try {
-        // Replace with actual API call to Supabase when integrated
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-        setProducts(mockProducts);
-        setFilteredProducts(mockProducts);
+        // Only fetch approved products
+        const { data, error } = await supabase
+          .from('products')
+          .select('*, profiles(full_name)')
+          .eq('status', 'approved');
+
+        if (error) {
+          throw error;
+        }
+
+        const formattedProducts: Product[] = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          description: item.description || '',
+          price: item.price,
+          images: item.images || [],
+          category: item.category,
+          sellerId: item.seller_id,
+          sellerName: item.profiles?.full_name || 'Unknown Seller',
+          status: item.status,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at
+        }));
+
+        setProducts(formattedProducts);
+        setFilteredProducts(formattedProducts);
       } catch (error) {
         console.error('Error fetching products:', error);
+        toast({
+          title: 'Failed to load products',
+          description: 'There was an error loading the products. Please try again.',
+          variant: 'destructive',
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProducts();
-  }, []);
+  }, [toast]);
 
   const handleFilterChange = (filters: FiltersType) => {
     // Apply filters to products
@@ -152,7 +84,7 @@ const ProductsPage = () => {
       );
     }
     
-    // Category filter - updated to handle the 'all' value
+    // Category filter
     if (filters.category && filters.category !== 'all') {
       filtered = filtered.filter(product => product.category === filters.category);
     }

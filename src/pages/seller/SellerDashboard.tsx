@@ -1,545 +1,348 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { 
-  Users, 
-  Package, 
-  MessageSquare, 
-  FileText,
-  Plus,
-  ChevronRight,
-  TrendingUp
+  Plus, PackageOpen, ShoppingBag, DollarSign, ArrowUpRight, 
+  Clock, Check, X, BarChart4, AlertCircle
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Organic Rice',
-    description: 'Premium quality organic rice grown without pesticides',
-    price: 120,
-    images: ['https://images.unsplash.com/photo-1586201375761-83865001e31c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80'],
-    category: 'Grains',
-    sellerId: 'seller-1',
-    sellerName: 'Farmer John',
-    status: 'approved',
-    createdAt: '2025-03-15',
-    updatedAt: '2025-03-15'
-  },
-  {
-    id: '2',
-    name: 'Fresh Apples',
-    description: 'Crisp, sweet apples picked from our orchard',
-    price: 80,
-    images: ['https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80'],
-    category: 'Fruits',
-    sellerId: 'seller-1',
-    sellerName: 'Farmer John',
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '3',
-    name: 'Fresh Farm Eggs',
-    description: 'Free-range eggs from pasture-raised chickens',
-    price: 90,
-    images: ['https://images.unsplash.com/photo-1489734353536-27e3e5b51d41?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1171&q=80'],
-    category: 'Dairy',
-    sellerId: 'seller-1',
-    sellerName: 'Farmer John',
-    status: 'rejected',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
-
 const SellerDashboard = () => {
-  const { user } = useAuth();
-  const [activeProducts, setActiveProducts] = useState<Product[]>(mockProducts);
-  const [tab, setTab] = useState('overview');
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    approved: 0, 
+    pending: 0,
+    rejected: 0
+  });
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate('/login');
+    } else if (!isLoading && isAuthenticated && user?.role !== 'seller') {
+      navigate('/');
+    }
+  }, [isAuthenticated, isLoading, user, navigate]);
+
+  // Fetch seller's products
+  useEffect(() => {
+    const fetchSellerProducts = async () => {
+      if (!user?.id) return;
+      
+      setLoadingProducts(true);
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('seller_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Format products
+        const formattedProducts = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          description: item.description || '',
+          price: item.price,
+          images: item.images || [],
+          category: item.category,
+          sellerId: item.seller_id,
+          sellerName: user.name || 'You',
+          status: item.status,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at
+        }));
+
+        setProducts(formattedProducts);
+        
+        // Calculate stats
+        const approved = data.filter(p => p.status === 'approved').length;
+        const pending = data.filter(p => p.status === 'pending').length;
+        const rejected = data.filter(p => p.status === 'rejected').length;
+        
+        setStats({
+          total: data.length,
+          approved,
+          pending,
+          rejected
+        });
+      } catch (error) {
+        console.error('Error fetching seller products:', error);
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    if (isAuthenticated && user?.id) {
+      fetchSellerProducts();
+    }
+  }, [isAuthenticated, user]);
+
+  // Get status badge for product
+  const getStatusBadge = (status: string) => {
+    switch(status) {
+      case 'approved':
+        return (
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+            <span className="text-green-700">Approved</span>
+          </div>
+        );
+      case 'pending':
+        return (
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+            <span className="text-amber-700">Pending Review</span>
+          </div>
+        );
+      case 'rejected':
+        return (
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-red-500"></div>
+            <span className="text-red-700">Rejected</span>
+          </div>
+        );
+      default:
+        return (
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-gray-500"></div>
+            <span className="text-gray-700">Unknown</span>
+          </div>
+        );
+    }
+  };
+
+  if (isLoading) {
+    return <div className="p-8 flex justify-center">Loading...</div>;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+      <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-agrigreen-900">Seller Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {user?.name || 'Seller'}</p>
+          <p className="text-gray-600">Manage your agricultural products</p>
         </div>
-        <div className="mt-4 md:mt-0">
-          <Button asChild className="bg-agrigreen-600 hover:bg-agrigreen-700">
-            <Link to="/seller/add-product">
-              <Plus className="mr-2 h-4 w-4" /> Add New Product
-            </Link>
-          </Button>
-        </div>
+        <Button className="mt-4 sm:mt-0 bg-agrigreen-600 hover:bg-agrigreen-700" asChild>
+          <Link to="/seller/add-product">
+            <Plus className="mr-2 h-4 w-4" /> Add New Product
+          </Link>
+        </Button>
       </div>
 
-      <Tabs defaultValue="overview" value={tab} onValueChange={setTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Total Products</CardTitle>
-                <CardDescription>All your listed products</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Package className="h-8 w-8 text-agrigreen-600 mr-3" />
-                  <div>
-                    <p className="text-3xl font-bold">{activeProducts.length}</p>
-                    <p className="text-sm text-gray-500">Listed products</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Approved Products</CardTitle>
-                <CardDescription>Products ready to sell</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Package className="h-8 w-8 text-green-600 mr-3" />
-                  <div>
-                    <p className="text-3xl font-bold">{activeProducts.filter(p => p.status === 'approved').length}</p>
-                    <p className="text-sm text-gray-500">Approved</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Pending Review</CardTitle>
-                <CardDescription>Awaiting admin approval</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Package className="h-8 w-8 text-yellow-500 mr-3" />
-                  <div>
-                    <p className="text-3xl font-bold">{activeProducts.filter(p => p.status === 'pending').length}</p>
-                    <p className="text-sm text-gray-500">Pending</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Total Sales</CardTitle>
-                <CardDescription>Revenue from your products</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <TrendingUp className="h-8 w-8 text-agriorange-500 mr-3" />
-                  <div>
-                    <p className="text-3xl font-bold">₹1,250</p>
-                    <p className="text-sm text-gray-500">This month</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Products</p>
+                <p className="text-2xl font-bold">{stats.total}</p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-full">
+                <ShoppingBag className="h-5 w-5 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Recent Products</CardTitle>
-                <CardDescription>Your recently added products</CardDescription>
-              </CardHeader>
-              <CardContent>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Active Products</p>
+                <p className="text-2xl font-bold">{stats.approved}</p>
+              </div>
+              <div className="bg-green-100 p-3 rounded-full">
+                <Check className="h-5 w-5 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Pending Approval</p>
+                <p className="text-2xl font-bold">{stats.pending}</p>
+              </div>
+              <div className="bg-amber-100 p-3 rounded-full">
+                <Clock className="h-5 w-5 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Rejected</p>
+                <p className="text-2xl font-bold">{stats.rejected}</p>
+              </div>
+              <div className="bg-red-100 p-3 rounded-full">
+                <X className="h-5 w-5 text-red-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Products</CardTitle>
+              <CardDescription>Manage your listings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingProducts ? (
                 <div className="space-y-4">
-                  {activeProducts.slice(0, 3).map((product) => (
-                    <div key={product.id} className="flex items-center gap-4 p-3 rounded-md hover:bg-gray-50">
-                      <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden">
-                        <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-grow">
-                        <h4 className="font-medium">{product.name}</h4>
-                        <p className="text-sm text-gray-500">{product.category}</p>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <p className="font-medium">₹{product.price}</p>
-                        <Badge
-                          className={`
-                            ${product.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : ''}
-                            ${product.status === 'approved' ? 'bg-green-100 text-green-800 border-green-200' : ''}
-                            ${product.status === 'rejected' ? 'bg-red-100 text-red-800 border-red-200' : ''}
-                          `}
-                        >
-                          {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
-                        </Badge>
-                      </div>
-                    </div>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="animate-pulse h-16 bg-gray-100 rounded-md"></div>
                   ))}
                 </div>
-                <div className="mt-4 text-center">
-                  <Button variant="outline" onClick={() => setTab('products')} className="border-agrigreen-500 text-agrigreen-600 hover:bg-agrigreen-50">
-                    View All Products
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Latest Notifications</CardTitle>
-                <CardDescription>Updates about your products</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-3 rounded-md bg-green-50 border-l-4 border-green-500">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium text-green-800">Product Approved</p>
-                      <span className="text-xs text-gray-500">2h ago</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Your product "Organic Rice" has been approved.</p>
-                  </div>
-                  
-                  <div className="p-3 rounded-md bg-yellow-50 border-l-4 border-yellow-500">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium text-yellow-800">New Message</p>
-                      <span className="text-xs text-gray-500">5h ago</span>
-                    </div>
-                    <p className="text-sm text-gray-600">You have a new message from a buyer.</p>
-                  </div>
-                  
-                  <div className="p-3 rounded-md bg-blue-50 border-l-4 border-blue-500">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium text-blue-800">Price Alert</p>
-                      <span className="text-xs text-gray-500">1d ago</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Market price for "Rice" has increased by 5%.</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="mt-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Government Schemes</CardTitle>
-                <CardDescription>Latest agricultural schemes that might benefit you</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 border rounded-md hover:shadow-sm transition-shadow">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-medium text-agriorange-700">National Agriculture Market (e-NAM)</h4>
-                        <p className="text-sm text-gray-600 mt-1">A pan-India electronic trading portal that networks existing agricultural markets to create a unified national market for agricultural commodities.</p>
-                      </div>
-                      <Button variant="outline" className="shrink-0 border-agriorange-500 text-agriorange-600 hover:bg-agriorange-50">
-                        <FileText className="mr-2 h-4 w-4" /> View Details
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 border rounded-md hover:shadow-sm transition-shadow">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-medium text-agriorange-700">PM Kisan Samman Nidhi Yojana</h4>
-                        <p className="text-sm text-gray-600 mt-1">Financial benefit of ₹6000 per year in three equal installments to eligible farmer families.</p>
-                      </div>
-                      <Button variant="outline" className="shrink-0 border-agriorange-500 text-agriorange-600 hover:bg-agriorange-50">
-                        <FileText className="mr-2 h-4 w-4" /> View Details
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 text-center">
-                  <Button variant="outline" asChild className="border-agrigreen-500 text-agrigreen-600 hover:bg-agrigreen-50">
-                    <Link to="/schemes">
-                      View All Schemes
+              ) : products.length === 0 ? (
+                <div className="text-center py-8">
+                  <PackageOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                  <h3 className="text-gray-500 mb-3">No products yet</h3>
+                  <Button asChild>
+                    <Link to="/seller/add-product">
+                      <Plus className="mr-2 h-4 w-4" /> Add Your First Product
                     </Link>
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="products">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row justify-between md:items-center">
-                <div>
-                  <CardTitle>My Products</CardTitle>
-                  <CardDescription>Manage all your listed products</CardDescription>
-                </div>
-                <Button asChild className="mt-4 md:mt-0 bg-agrigreen-600 hover:bg-agrigreen-700">
-                  <Link to="/seller/add-product">
-                    <Plus className="mr-2 h-4 w-4" /> Add New Product
-                  </Link>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <div className="grid grid-cols-12 p-4 border-b bg-muted/50 font-medium">
-                  <div className="col-span-5">Product</div>
-                  <div className="col-span-2">Price</div>
-                  <div className="col-span-2">Category</div>
-                  <div className="col-span-2">Status</div>
-                  <div className="col-span-1"></div>
-                </div>
-                {activeProducts.map((product) => (
-                  <div key={product.id} className="grid grid-cols-12 p-4 border-b items-center hover:bg-muted/20">
-                    <div className="col-span-5 flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded overflow-hidden">
-                        <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="space-y-3">
+                  {products.map(product => (
+                    <div key={product.id} className="flex items-center p-3 border rounded-md hover:bg-gray-50">
+                      <div className="h-12 w-12 bg-gray-100 rounded-md overflow-hidden mr-4 shrink-0">
+                        {product.images && product.images.length > 0 ? (
+                          <img 
+                            src={product.images[0]} 
+                            alt={product.name} 
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center bg-gray-200">
+                            <PackageOpen className="h-6 w-6 text-gray-400" />
+                          </div>
+                        )}
                       </div>
-                      <div className="truncate">{product.name}</div>
+
+                      <div className="flex-grow min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                          <h3 className="font-medium text-agrigreen-900 truncate">{product.name}</h3>
+                          <div className="text-sm">{getStatusBadge(product.status)}</div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row text-sm text-gray-500 mt-1 sm:items-center">
+                          <span className="mr-3">₹{product.price}</span>
+                          <span className="mr-3">{product.category}</span>
+                          <span>
+                            {new Date(product.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <Button variant="ghost" size="sm" asChild className="shrink-0 ml-2">
+                        <Link to={`/seller/product/${product.id}`}>
+                          <ArrowUpRight className="h-4 w-4" />
+                        </Link>
+                      </Button>
                     </div>
-                    <div className="col-span-2">₹{product.price}</div>
-                    <div className="col-span-2">{product.category}</div>
-                    <div className="col-span-2">
-                      <Badge
-                        className={`
-                          ${product.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : ''}
-                          ${product.status === 'approved' ? 'bg-green-100 text-green-800 border-green-200' : ''}
-                          ${product.status === 'rejected' ? 'bg-red-100 text-red-800 border-red-200' : ''}
-                        `}
-                      >
-                        {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
-                      </Badge>
-                    </div>
-                    <div className="col-span-1 text-right">
-                      <Button variant="ghost" size="sm">Edit</Button>
-                    </div>
-                  </div>
-                ))}
-                {activeProducts.length === 0 && (
-                  <div className="p-8 text-center text-gray-500">
-                    <Package className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                    <p>No products found</p>
-                    <Button className="mt-4 bg-agrigreen-600 hover:bg-agrigreen-700">
-                      <Link to="/seller/add-product">
-                        <Plus className="mr-2 h-4 w-4" /> Add Your First Product
-                      </Link>
-                    </Button>
-                  </div>
-                )}
+                  ))}
+                </div>
+              )}
+            </CardContent>
+            {products.length > 0 && (
+              <CardFooter className="border-t pt-4 flex justify-center">
+                <Button variant="outline" size="sm">View All Products</Button>
+              </CardFooter>
+            )}
+          </Card>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Recent Analytics</CardTitle>
+              <CardDescription>Your product performance</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px] flex items-center justify-center">
+              <div className="text-center">
+                <BarChart4 className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <h3 className="text-gray-500 mb-2">Analytics coming soon</h3>
+                <p className="text-sm text-gray-400 max-w-md mx-auto">
+                  Detailed analytics about your product views, sales, and performance will be available here.
+                </p>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-        
-        <TabsContent value="analytics">
+        </div>
+
+        <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>Price Predictions & Analytics</CardTitle>
-              <CardDescription>
-                View price trends and predictions for your products
-              </CardDescription>
+              <CardTitle>Sales Overview</CardTitle>
+              <CardDescription>Your recent transactions</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center py-8">
+              <DollarSign className="h-12 w-12 text-gray-300 mb-3" />
+              <h3 className="text-gray-500 mb-2">No sales yet</h3>
+              <p className="text-sm text-gray-400 text-center max-w-xs">
+                When buyers purchase your products, your sales information will appear here.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Tips for Sellers</CardTitle>
+              <CardDescription>Maximize your success</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-8">
-                <div className="bg-white p-4 rounded-lg border border-gray-200">
-                  <h3 className="font-medium mb-4">Predicted Price Trends - Organic Rice</h3>
-                  <div className="h-64 bg-gray-100 rounded flex items-center justify-center">
-                    <p className="text-gray-500">Price prediction chart will be displayed here</p>
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-3 bg-gray-50 rounded-md">
-                      <p className="text-sm text-gray-500">Current Price</p>
-                      <p className="font-semibold">₹120/kg</p>
-                    </div>
-                    <div className="p-3 bg-green-50 rounded-md">
-                      <p className="text-sm text-gray-500">Predicted (1 month)</p>
-                      <p className="font-semibold text-green-600">₹132/kg (+10%)</p>
-                    </div>
-                    <div className="p-3 bg-green-50 rounded-md">
-                      <p className="text-sm text-gray-500">Predicted (3 months)</p>
-                      <p className="font-semibold text-green-600">₹138/kg (+15%)</p>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-md">
-                      <p className="text-sm text-gray-500">Market Average</p>
-                      <p className="font-semibold">₹115/kg</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white p-4 rounded-lg border border-gray-200">
-                  <h3 className="font-medium mb-4">Weather Impact on Crops</h3>
-                  <div className="h-64 bg-gray-100 rounded flex items-center justify-center">
-                    <p className="text-gray-500">Weather impact chart will be displayed here</p>
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">Forecast:</span> The upcoming monsoon season is predicted to be favorable for rice cultivation in your region, potentially increasing yield by 8-12%.
+              <div className="space-y-3">
+                <div className="flex gap-3 p-3 bg-blue-50 rounded-md">
+                  <AlertCircle className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-blue-800 mb-1">Complete your profile</h4>
+                    <p className="text-sm text-blue-700">
+                      Buyers are more likely to purchase from sellers with complete profiles.
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-lg border border-gray-200">
-                  <h3 className="font-medium mb-4">Sales Performance</h3>
-                  <div className="h-64 bg-gray-100 rounded flex items-center justify-center">
-                    <p className="text-gray-500">Sales performance chart will be displayed here</p>
+                <div className="flex gap-3 p-3 bg-green-50 rounded-md">
+                  <AlertCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-green-800 mb-1">High-quality photos</h4>
+                    <p className="text-sm text-green-700">
+                      Clear, well-lit product photos can increase sales by up to 40%.
+                    </p>
                   </div>
-                  <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-3 bg-gray-50 rounded-md">
-                      <p className="text-sm text-gray-500">Total Sales (MTD)</p>
-                      <p className="font-semibold">₹1,250</p>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-md">
-                      <p className="text-sm text-gray-500">Orders (MTD)</p>
-                      <p className="font-semibold">8</p>
-                    </div>
-                    <div className="p-3 bg-green-50 rounded-md">
-                      <p className="text-sm text-gray-500">Growth (MoM)</p>
-                      <p className="font-semibold text-green-600">+12.4%</p>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-md">
-                      <p className="text-sm text-gray-500">Avg. Order Value</p>
-                      <p className="font-semibold">₹156.25</p>
-                    </div>
+                </div>
+
+                <div className="flex gap-3 p-3 bg-amber-50 rounded-md">
+                  <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-amber-800 mb-1">Detailed descriptions</h4>
+                    <p className="text-sm text-amber-700">
+                      Include information on farming methods, freshness, and product benefits.
+                    </p>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-        
-        <TabsContent value="messages">
-          <Card>
-            <CardHeader>
-              <CardTitle>Messages</CardTitle>
-              <CardDescription>
-                Communicate with buyers and admin
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-white rounded-lg border border-gray-200 h-[600px] flex flex-col">
-                <div className="border-b p-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium">Recent Conversations</h3>
-                    <Button variant="outline" size="sm" className="border-agrigreen-500 text-agrigreen-600 hover:bg-agrigreen-50">
-                      <MessageSquare className="mr-2 h-4 w-4" /> New Message
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex h-full">
-                  <div className="w-1/3 border-r overflow-y-auto">
-                    <div className="p-3 border-b hover:bg-gray-50 cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-agrigreen-100 rounded-full flex items-center justify-center text-agrigreen-600 font-medium">
-                          A
-                        </div>
-                        <div className="flex-grow">
-                          <p className="font-medium">Admin Support</p>
-                          <p className="text-sm text-gray-500 truncate">
-                            Your product has been approved...
-                          </p>
-                        </div>
-                        <div className="text-xs text-gray-500">2h ago</div>
-                      </div>
-                    </div>
-                    <div className="p-3 border-b bg-gray-50">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-medium">
-                          R
-                        </div>
-                        <div className="flex-grow">
-                          <p className="font-medium">Rahul Sharma</p>
-                          <p className="text-sm text-gray-500 truncate">
-                            Is the rice still available for...
-                          </p>
-                        </div>
-                        <div className="text-xs text-gray-500">5h ago</div>
-                      </div>
-                    </div>
-                    <div className="p-3 border-b hover:bg-gray-50 cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-medium">
-                          P
-                        </div>
-                        <div className="flex-grow">
-                          <p className="font-medium">Priya Desai</p>
-                          <p className="text-sm text-gray-500 truncate">
-                            Thank you for the quick delivery!
-                          </p>
-                        </div>
-                        <div className="text-xs text-gray-500">1d ago</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="w-2/3 flex flex-col">
-                    <div className="p-4 border-b">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-medium">
-                          R
-                        </div>
-                        <div>
-                          <p className="font-medium">Rahul Sharma</p>
-                          <p className="text-sm text-gray-500">Buyer</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex-grow p-4 overflow-y-auto">
-                      <div className="space-y-4">
-                        <div className="flex justify-start">
-                          <div className="bg-gray-100 rounded-lg p-3 max-w-[80%]">
-                            <p>Hello, I'm interested in your organic rice. Is it still available for purchase?</p>
-                            <p className="text-xs text-gray-500 mt-1">5h ago</p>
-                          </div>
-                        </div>
-                        <div className="flex justify-end">
-                          <div className="bg-agrigreen-100 rounded-lg p-3 max-w-[80%]">
-                            <p>Yes, it's available! How many kg would you like?</p>
-                            <p className="text-xs text-gray-500 mt-1">5h ago</p>
-                          </div>
-                        </div>
-                        <div className="flex justify-start">
-                          <div className="bg-gray-100 rounded-lg p-3 max-w-[80%]">
-                            <p>I'd like to order 5kg. Do you deliver to Delhi NCR?</p>
-                            <p className="text-xs text-gray-500 mt-1">4h ago</p>
-                          </div>
-                        </div>
-                        <div className="flex justify-end">
-                          <div className="bg-agrigreen-100 rounded-lg p-3 max-w-[80%]">
-                            <p>Yes, we deliver to Delhi NCR. The delivery is free for your first order!</p>
-                            <p className="text-xs text-gray-500 mt-1">4h ago</p>
-                          </div>
-                        </div>
-                        <div className="flex justify-start">
-                          <div className="bg-gray-100 rounded-lg p-3 max-w-[80%]">
-                            <p>Great! How long will it take to deliver?</p>
-                            <p className="text-xs text-gray-500 mt-1">3h ago</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-4 border-t">
-                      <div className="flex gap-2">
-                        <Input placeholder="Type a message..." className="flex-grow" />
-                        <Button className="bg-agrigreen-600 hover:bg-agrigreen-700">
-                          Send
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 };
