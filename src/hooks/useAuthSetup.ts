@@ -9,6 +9,8 @@ export function useAuthSetup(
   setIsLoading: (isLoading: boolean) => void
 ) {
   useEffect(() => {
+    console.log("Initializing auth setup...");
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
@@ -19,6 +21,7 @@ export function useAuthSetup(
           setIsLoading(true); // Set loading while we fetch profile data
           try {
             const userProfile = await fetchUserProfile(currentSession);
+            console.log("User profile from auth state change:", userProfile);
             setUser(userProfile);
           } catch (error) {
             console.error('Error in auth state change:', error);
@@ -43,6 +46,7 @@ export function useAuthSetup(
         if (initialSession?.user) {
           setIsLoading(true); // Ensure loading state is set
           const userProfile = await fetchUserProfile(initialSession);
+          console.log("User profile from initial session:", userProfile);
           setUser(userProfile);
         }
       } catch (error) {

@@ -24,16 +24,18 @@ interface RegisterFormInputs {
 }
 
 const RegisterForm = () => {
-  const { register: registerUser, isLoading } = useAuth();
+  const { register: registerUser, isAuthenticated, isLoading: authLoading } = useAuth();
   const [role, setRole] = useState<UserRole>('buyer');
   const navigate = useNavigate();
   const { toast } = useToast();
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const { register, handleSubmit, watch, formState: { errors, isSubmitting }, reset } = useForm<RegisterFormInputs>();
   const password = watch('password');
+  const [isLoading, setIsLoading] = useState(false);
 
   const onSubmit = async (data: RegisterFormInputs) => {
     try {
+      setIsLoading(true);
       setRegistrationError(null);
       console.log("Starting registration with data:", { email: data.email, role });
       
@@ -45,18 +47,23 @@ const RegisterForm = () => {
         description: 'Your account has been created. You will be redirected to your dashboard.',
       });
       
-      // The AuthContext will handle redirection based on role
+      // Note: Redirection handled by RegisterPage component via auth context
+      
     } catch (error: any) {
       console.error('Registration error:', error);
       setRegistrationError(error?.message || 'Registration failed. Please try again.');
       
-      // Reset form fields except email and name if there's an error
+      // Display appropriate toast message
       if (error?.message?.includes('already registered')) {
         toast({
           title: 'Registration failed',
           description: 'This email is already registered. Please try logging in instead.',
           variant: 'destructive',
         });
+        // Redirect to login page if the user is already registered
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
       } else {
         toast({
           title: 'Registration failed',
@@ -64,6 +71,8 @@ const RegisterForm = () => {
           variant: 'destructive',
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -163,9 +172,9 @@ const RegisterForm = () => {
       <Button
         type="submit"
         className="w-full bg-agrigreen-600 hover:bg-agrigreen-700"
-        disabled={isSubmitting || isLoading}
+        disabled={isSubmitting || isLoading || authLoading}
       >
-        {isSubmitting || isLoading ? 'Creating Account...' : 'Create Account'}
+        {isSubmitting || isLoading || authLoading ? 'Creating Account...' : 'Create Account'}
       </Button>
 
       <div className="text-center mt-4">
