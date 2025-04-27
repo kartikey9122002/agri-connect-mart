@@ -42,21 +42,23 @@ export async function fetchUserProfile(session: Session): Promise<User | null> {
             
           if (insertError) {
             console.error('Error creating profile:', insertError);
+            return null;
           } else {
             console.log('Profile created successfully');
+            
+            // Return user object based on the data we just inserted
+            return {
+              id: session.user.id,
+              email: session.user.email || '',
+              name: name,
+              role: role as UserRole,
+              createdAt: session.user.created_at || new Date().toISOString()
+            };
           }
         } catch (insertErr) {
           console.error('Exception creating profile:', insertErr);
+          return null;
         }
-        
-        // Create user object based on auth data
-        return {
-          id: session.user.id,
-          email: session.user.email || '',
-          name: name,
-          role: role as UserRole,
-          createdAt: session.user.created_at
-        };
       }
       return null;
     }
@@ -75,7 +77,7 @@ export async function fetchUserProfile(session: Session): Promise<User | null> {
       email: session.user.email || '',
       name: profile.full_name || '',
       role: validRole,
-      createdAt: session.user.created_at
+      createdAt: session.user.created_at || new Date().toISOString()
     };
   } catch (error) {
     console.error('Error in fetchUserProfile:', error);

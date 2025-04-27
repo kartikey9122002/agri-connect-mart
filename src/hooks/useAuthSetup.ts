@@ -25,7 +25,13 @@ export function useAuthSetup(
           try {
             const userProfile = await fetchUserProfile(currentSession);
             console.log("User profile from auth state change:", userProfile);
-            setUser(userProfile);
+            
+            if (userProfile) {
+              setUser(userProfile);
+            } else {
+              setUser(null);
+              console.error("Failed to get user profile during auth state change");
+            }
           } catch (error) {
             console.error('Error in auth state change:', error);
             setUser(null);
@@ -51,7 +57,13 @@ export function useAuthSetup(
         if (initialSession?.user) {
           const userProfile = await fetchUserProfile(initialSession);
           console.log("User profile from initial session:", userProfile);
-          setUser(userProfile);
+          
+          if (userProfile) {
+            setUser(userProfile);
+          } else {
+            console.error("Failed to get user profile during initialization");
+            setUser(null);
+          }
         } else {
           setUser(null);
         }
