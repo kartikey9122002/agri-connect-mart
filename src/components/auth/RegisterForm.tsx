@@ -44,10 +44,10 @@ const RegisterForm = () => {
       console.log("Registration completed successfully");
       toast({
         title: 'Registration successful',
-        description: 'Your account has been created. You will be redirected to your dashboard.',
+        description: 'Your account has been created. You will be redirected to your dashboard shortly.',
       });
       
-      // Note: Redirection handled by RegisterPage component via auth context
+      // Note: Redirection is now handled by RegisterPage's useEffect
       
     } catch (error: any) {
       console.error('Registration error:', error);

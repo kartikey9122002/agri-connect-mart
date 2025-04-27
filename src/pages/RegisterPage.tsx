@@ -16,16 +16,16 @@ const RegisterPage = () => {
       // Redirect based on user role
       switch (user.role) {
         case 'admin':
-          navigate('/admin-dashboard');
+          navigate('/admin-dashboard', { replace: true });
           break;
         case 'seller':
-          navigate('/seller-dashboard');
+          navigate('/seller-dashboard', { replace: true });
           break;
         case 'buyer':
-          navigate('/buyer-dashboard');
+          navigate('/buyer-dashboard', { replace: true });
           break;
         default:
-          navigate('/');
+          navigate('/', { replace: true });
       }
     }
   }, [isAuthenticated, user, isLoading, navigate]);

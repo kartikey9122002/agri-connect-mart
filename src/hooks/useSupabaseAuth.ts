@@ -26,6 +26,7 @@ export function useSupabaseAuth() {
       }
       
       console.log("Login successful:", data);
+      // Auth state change listener will handle the session and user update
       return;
     } catch (error) {
       console.error('Login failed:', error);
@@ -39,6 +40,8 @@ export function useSupabaseAuth() {
     setIsLoading(true);
     
     try {
+      console.log("useSupabaseAuth: Registering new user:", { email, name, role });
+      
       // Register the user with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -64,6 +67,7 @@ export function useSupabaseAuth() {
       }
       
       console.log("Registration successful:", data);
+      // Auth state change listener will handle the session and user update
       return;
     } catch (error) {
       console.error('Registration failed:', error);
@@ -83,6 +87,7 @@ export function useSupabaseAuth() {
       }
       
       setUser(null);
+      setSession(null);
       return;
     } catch (error) {
       console.error('Logout failed:', error);

@@ -15,6 +15,8 @@ export function useAuthSetup(
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log("Auth state change event:", event);
+        
+        // Always update session first
         setSession(currentSession);
         
         if (currentSession?.user) {
@@ -38,19 +40,24 @@ export function useAuthSetup(
 
     // THEN check for existing session
     const initializeAuth = async () => {
+      setIsLoading(true); // Ensure loading state is set at the start
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         console.log("Initial session check:", initialSession ? "Session exists" : "No session");
+        
+        // Always update session first
         setSession(initialSession);
         
         if (initialSession?.user) {
-          setIsLoading(true); // Ensure loading state is set
           const userProfile = await fetchUserProfile(initialSession);
           console.log("User profile from initial session:", userProfile);
           setUser(userProfile);
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
