@@ -11,16 +11,17 @@ export function useAuthSetup(
   useEffect(() => {
     console.log("Initializing auth setup...");
     
+    setIsLoading(true); // Start in loading state
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        console.log("Auth state change event:", event);
+        console.log("Auth state change event:", event, currentSession?.user?.id);
         
         // Always update session first
         setSession(currentSession);
         
         if (currentSession?.user) {
-          setIsLoading(true); // Set loading while we fetch profile data
           try {
             const userProfile = await fetchUserProfile(currentSession);
             console.log("User profile from auth state change:", userProfile);
@@ -40,7 +41,6 @@ export function useAuthSetup(
 
     // THEN check for existing session
     const initializeAuth = async () => {
-      setIsLoading(true); // Ensure loading state is set at the start
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         console.log("Initial session check:", initialSession ? "Session exists" : "No session");
@@ -63,6 +63,7 @@ export function useAuthSetup(
       }
     };
 
+    // Initialize auth after setting up the listener
     initializeAuth();
 
     return () => {

@@ -22,13 +22,32 @@ export async function fetchUserProfile(session: Session): Promise<User | null> {
     if (error) {
       console.error('Error fetching user profile:', error);
       
-      // If profile not found, we might want to create one
-      // This can happen if the user was just created but the profile wasn't
+      // If profile not found, create one from user metadata
       if (error.code === 'PGRST116') {
         console.log("Profile not found, creating from user metadata");
-        // Try to extract role from user metadata if available
+        
+        // Extract metadata from user
         const role = session.user.user_metadata?.role || 'buyer';
         const name = session.user.user_metadata?.full_name || '';
+        
+        // Try to create a profile if it doesn't exist
+        try {
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: session.user.id,
+              full_name: name,
+              role: role
+            });
+            
+          if (insertError) {
+            console.error('Error creating profile:', insertError);
+          } else {
+            console.log('Profile created successfully');
+          }
+        } catch (insertErr) {
+          console.error('Exception creating profile:', insertErr);
+        }
         
         // Create user object based on auth data
         return {

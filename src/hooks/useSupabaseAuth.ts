@@ -27,7 +27,7 @@ export function useSupabaseAuth() {
       
       console.log("Login successful:", data);
       // Auth state change listener will handle the session and user update
-      return;
+      return data;
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -67,8 +67,22 @@ export function useSupabaseAuth() {
       }
       
       console.log("Registration successful:", data);
-      // Auth state change listener will handle the session and user update
-      return;
+      
+      // Manually trigger session update for faster redirection
+      if (data.session) {
+        setSession(data.session);
+        // Set user data directly from registration data to avoid delays
+        const newUser: User = {
+          id: data.user.id,
+          email: email,
+          name: name,
+          role: role,
+          createdAt: data.user.created_at
+        };
+        setUser(newUser);
+      }
+      
+      return data;
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;

@@ -8,6 +8,8 @@ const RegisterPage = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
   const navigate = useNavigate();
 
+  console.log("RegisterPage render state:", { isAuthenticated, user, isLoading });
+  
   useEffect(() => {
     // Only redirect if authentication is confirmed and loading is complete
     if (isAuthenticated && user && !isLoading) {

@@ -39,15 +39,29 @@ const RegisterForm = () => {
       setRegistrationError(null);
       console.log("Starting registration with data:", { email: data.email, role });
       
-      await registerUser(data.email, data.password, data.name, role);
+      const result = await registerUser(data.email, data.password, data.name, role);
       
-      console.log("Registration completed successfully");
+      console.log("Registration completed successfully, result:", result);
       toast({
         title: 'Registration successful',
-        description: 'Your account has been created. You will be redirected to your dashboard shortly.',
+        description: 'Your account has been created. Redirecting to your dashboard...',
       });
       
-      // Note: Redirection is now handled by RegisterPage's useEffect
+      // Manually trigger redirection based on role after successful registration
+      setTimeout(() => {
+        switch (role) {
+          case 'admin':
+            navigate('/admin-dashboard', { replace: true });
+            break;
+          case 'seller':
+            navigate('/seller-dashboard', { replace: true });
+            break;
+          case 'buyer':
+          default:
+            navigate('/buyer-dashboard', { replace: true });
+            break;
+        }
+      }, 1000);
       
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -174,7 +188,7 @@ const RegisterForm = () => {
         className="w-full bg-agrigreen-600 hover:bg-agrigreen-700"
         disabled={isSubmitting || isLoading || authLoading}
       >
-        {isSubmitting || isLoading || authLoading ? 'Creating Account...' : 'Create Account'}
+        {isLoading || authLoading ? 'Creating Account...' : 'Create Account'}
       </Button>
 
       <div className="text-center mt-4">
