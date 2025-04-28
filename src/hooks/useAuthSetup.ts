@@ -15,29 +15,33 @@ export function useAuthSetup(
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         console.log("Auth state change event:", event, currentSession?.user?.id);
         
         // Always update session first
         setSession(currentSession);
         
+        // Handle user profile separately with setTimeout to avoid potential deadlock
         if (currentSession?.user) {
-          try {
-            const userProfile = await fetchUserProfile(currentSession);
-            console.log("User profile from auth state change:", userProfile);
-            
-            if (userProfile) {
-              setUser(userProfile);
-            } else {
+          // Use setTimeout to break potential deadlock in auth state changes
+          setTimeout(async () => {
+            try {
+              const userProfile = await fetchUserProfile(currentSession);
+              console.log("User profile from auth state change:", userProfile);
+              
+              if (userProfile) {
+                setUser(userProfile);
+              } else {
+                setUser(null);
+                console.error("Failed to get user profile during auth state change");
+              }
+            } catch (error) {
+              console.error('Error in auth state change:', error);
               setUser(null);
-              console.error("Failed to get user profile during auth state change");
+            } finally {
+              setIsLoading(false);
             }
-          } catch (error) {
-            console.error('Error in auth state change:', error);
-            setUser(null);
-          } finally {
-            setIsLoading(false);
-          }
+          }, 0);
         } else {
           setUser(null);
           setIsLoading(false);
@@ -55,22 +59,32 @@ export function useAuthSetup(
         setSession(initialSession);
         
         if (initialSession?.user) {
-          const userProfile = await fetchUserProfile(initialSession);
-          console.log("User profile from initial session:", userProfile);
-          
-          if (userProfile) {
-            setUser(userProfile);
-          } else {
-            console.error("Failed to get user profile during initialization");
-            setUser(null);
-          }
+          // Use setTimeout to break potential deadlock
+          setTimeout(async () => {
+            try {
+              const userProfile = await fetchUserProfile(initialSession);
+              console.log("User profile from initial session:", userProfile);
+              
+              if (userProfile) {
+                setUser(userProfile);
+              } else {
+                console.error("Failed to get user profile during initialization");
+                setUser(null);
+              }
+            } catch (error) {
+              console.error('Error fetching user profile:', error);
+              setUser(null);
+            } finally {
+              setIsLoading(false);
+            }
+          }, 0);
         } else {
           setUser(null);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
         setUser(null);
-      } finally {
         setIsLoading(false);
       }
     };

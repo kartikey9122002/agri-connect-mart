@@ -15,23 +15,24 @@ const RegisterPage = () => {
     if (isAuthenticated && user && !isLoading) {
       console.log("RegisterPage: User authenticated, redirecting based on role:", user.role);
       
-      // Use a timeout to ensure state is updated before navigation
-      setTimeout(() => {
-        // Redirect based on user role
-        switch (user.role) {
-          case 'admin':
-            navigate('/admin-dashboard', { replace: true });
-            break;
-          case 'seller':
-            navigate('/seller-dashboard', { replace: true });
-            break;
-          case 'buyer':
-            navigate('/buyer-dashboard', { replace: true });
-            break;
-          default:
-            navigate('/', { replace: true });
-        }
-      }, 100);
+      // Redirect based on user role
+      let destination;
+      switch (user.role) {
+        case 'admin':
+          destination = '/admin-dashboard';
+          break;
+        case 'seller':
+          destination = '/seller-dashboard';
+          break;
+        case 'buyer':
+          destination = '/buyer-dashboard';
+          break;
+        default:
+          destination = '/';
+      }
+      
+      console.log(`Navigating to ${destination}`);
+      navigate(destination, { replace: true });
     }
   }, [isAuthenticated, user, isLoading, navigate]);
 

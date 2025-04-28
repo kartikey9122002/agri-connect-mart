@@ -1,6 +1,4 @@
-
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +24,6 @@ interface RegisterFormInputs {
 const RegisterForm = () => {
   const { register: registerUser, isAuthenticated, isLoading: authLoading } = useAuth();
   const [role, setRole] = useState<UserRole>('buyer');
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const { register, handleSubmit, watch, formState: { errors, isSubmitting }, reset } = useForm<RegisterFormInputs>();
@@ -39,29 +36,13 @@ const RegisterForm = () => {
       setRegistrationError(null);
       console.log("Starting registration with data:", { email: data.email, role });
       
-      const result = await registerUser(data.email, data.password, data.name, role);
+      await registerUser(data.email, data.password, data.name, role);
       
-      console.log("Registration completed successfully, result:", result);
+      console.log("Registration completed successfully");
       toast({
         title: 'Registration successful',
         description: 'Your account has been created. Redirecting to your dashboard...',
       });
-      
-      // Manually trigger redirection based on role after successful registration
-      setTimeout(() => {
-        switch (role) {
-          case 'admin':
-            navigate('/admin-dashboard', { replace: true });
-            break;
-          case 'seller':
-            navigate('/seller-dashboard', { replace: true });
-            break;
-          case 'buyer':
-          default:
-            navigate('/buyer-dashboard', { replace: true });
-            break;
-        }
-      }, 1000);
       
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -74,10 +55,6 @@ const RegisterForm = () => {
           description: 'This email is already registered. Please try logging in instead.',
           variant: 'destructive',
         });
-        // Redirect to login page if the user is already registered
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
       } else {
         toast({
           title: 'Registration failed',

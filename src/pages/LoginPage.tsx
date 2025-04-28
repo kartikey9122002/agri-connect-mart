@@ -12,6 +12,8 @@ const LoginPage = () => {
   // Get the intended destination from location state, or default routes by role
   const from = (location.state as any)?.from || '/';
 
+  console.log("LoginPage render state:", { isAuthenticated, user, isLoading });
+
   useEffect(() => {
     // Only redirect if authentication is confirmed and loading is complete
     if (isAuthenticated && user && !isLoading) {
@@ -33,10 +35,8 @@ const LoginPage = () => {
           destination = '/';
       }
       
-      // Use a timeout to ensure state is updated before navigation
-      setTimeout(() => {
-        navigate(destination, { replace: true });
-      }, 100);
+      console.log(`Navigating to ${destination}`);
+      navigate(destination, { replace: true });
     }
   }, [isAuthenticated, user, isLoading, navigate, from]);
 
