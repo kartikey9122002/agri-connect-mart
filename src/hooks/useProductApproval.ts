@@ -12,13 +12,12 @@ export const useProductApproval = () => {
   const fetchPendingProducts = async () => {
     setIsLoading(true);
     try {
+      // Modified query to correctly join the profiles table
       const { data, error } = await supabase
         .from('products')
         .select(`
           *,
-          profiles:seller_id (
-            full_name
-          )
+          profiles(full_name)
         `)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
@@ -33,6 +32,7 @@ export const useProductApproval = () => {
         images: item.images || [],
         category: item.category,
         sellerId: item.seller_id,
+        // Safely access the seller name from profiles
         sellerName: item.profiles?.full_name || 'Unknown Seller',
         status: item.status,
         createdAt: item.created_at,
