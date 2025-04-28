@@ -12,32 +12,40 @@ export const useProductApproval = () => {
   const fetchPendingProducts = async () => {
     setIsLoading(true);
     try {
-      // Modified query to correctly join the profiles table
-      const { data, error } = await supabase
+      // Using a proper join by first fetching products and then getting seller information separately
+      const { data: productsData, error: productsError } = await supabase
         .from('products')
-        .select(`
-          *,
-          profiles(full_name)
-        `)
+        .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (productsError) throw productsError;
 
-      const formattedProducts: Product[] = data.map(item => ({
-        id: item.id,
-        name: item.name,
-        description: item.description || '',
-        price: item.price,
-        images: item.images || [],
-        category: item.category,
-        sellerId: item.seller_id,
-        // Safely access the seller name from profiles
-        sellerName: item.profiles?.full_name || 'Unknown Seller',
-        status: item.status,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at
-      }));
+      // Now fetch profiles for these products
+      const formattedProducts: Product[] = await Promise.all(
+        productsData.map(async (item) => {
+          // Get seller profile information
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', item.seller_id)
+            .single();
+
+          return {
+            id: item.id,
+            name: item.name,
+            description: item.description || '',
+            price: item.price,
+            images: item.images || [],
+            category: item.category,
+            sellerId: item.seller_id,
+            sellerName: profileData?.full_name || 'Unknown Seller',
+            status: item.status,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at
+          };
+        })
+      );
 
       setPendingProducts(formattedProducts);
     } catch (error) {
