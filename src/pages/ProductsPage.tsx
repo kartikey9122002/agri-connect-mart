@@ -33,29 +33,40 @@ const ProductsPage = () => {
         // Only fetch approved products
         const { data, error } = await supabase
           .from('products')
-          .select('*, profiles:seller_id(full_name)')
+          .select('*')
           .eq('status', 'approved');
 
         if (error) {
           throw error;
         }
 
-        const formattedProducts: Product[] = data.map(item => ({
-          id: item.id,
-          name: item.name,
-          description: item.description || '',
-          price: item.price,
-          images: item.images || [],
-          category: item.category,
-          sellerId: item.seller_id,
-          sellerName: item.profiles?.full_name || 'Unknown Seller',
-          status: item.status,
-          createdAt: item.created_at,
-          updatedAt: item.updated_at
-        }));
+        // Fetch seller names separately to avoid join issues
+        const productsWithSellers = await Promise.all(
+          data.map(async (product) => {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', product.seller_id)
+              .single();
+              
+            return {
+              id: product.id,
+              name: product.name,
+              description: product.description || '',
+              price: product.price,
+              images: product.images || [],
+              category: product.category,
+              sellerId: product.seller_id,
+              sellerName: profileData?.full_name || 'Unknown Seller',
+              status: product.status,
+              createdAt: product.created_at,
+              updatedAt: product.updated_at
+            };
+          })
+        );
 
-        setProducts(formattedProducts);
-        setFilteredProducts(formattedProducts);
+        setProducts(productsWithSellers);
+        setFilteredProducts(productsWithSellers);
       } catch (error) {
         console.error('Error fetching products:', error);
         toast({
