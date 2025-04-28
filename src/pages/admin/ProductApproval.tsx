@@ -13,7 +13,7 @@ const ProductApproval = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-agrigreen-900">Product Approval Queue</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Product Approval Queue</h1>
         <p className="text-gray-600">Review and approve/reject product submissions from sellers</p>
       </div>
 

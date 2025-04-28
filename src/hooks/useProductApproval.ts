@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Product } from '@/types';
 
 export const useProductApproval = () => {
@@ -14,35 +14,30 @@ export const useProductApproval = () => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select(`
+          *,
+          profiles:seller_id (
+            full_name
+          )
+        `)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const formattedProducts = await Promise.all(
-        data.map(async (item) => {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', item.seller_id)
-            .single();
-            
-          return {
-            id: item.id,
-            name: item.name,
-            description: item.description || '',
-            price: item.price,
-            images: item.images || [],
-            category: item.category,
-            sellerId: item.seller_id,
-            sellerName: profileData?.full_name || 'Unknown Seller',
-            status: item.status,
-            createdAt: item.created_at,
-            updatedAt: item.updated_at
-          };
-        })
-      );
+      const formattedProducts: Product[] = data.map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description || '',
+        price: item.price,
+        images: item.images || [],
+        category: item.category,
+        sellerId: item.seller_id,
+        sellerName: item.profiles?.full_name || 'Unknown Seller',
+        status: item.status,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at
+      }));
 
       setPendingProducts(formattedProducts);
     } catch (error) {
@@ -109,6 +104,28 @@ export const useProductApproval = () => {
 
   useEffect(() => {
     fetchPendingProducts();
+
+    // Set up real-time subscription for product status changes
+    const channel = supabase
+      .channel('product-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'products',
+          filter: 'status=pending'
+        },
+        (payload) => {
+          // Refresh the products list when updates occur
+          fetchPendingProducts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return {
