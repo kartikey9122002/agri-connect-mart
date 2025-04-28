@@ -1,12 +1,16 @@
 
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginForm from '@/components/auth/LoginForm';
 
 const LoginPage = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get the intended destination from location state, or default routes by role
+  const from = (location.state as any)?.from || '/';
 
   useEffect(() => {
     // Only redirect if authentication is confirmed and loading is complete
@@ -14,21 +18,27 @@ const LoginPage = () => {
       console.log("LoginPage: User authenticated, redirecting based on role:", user.role);
       
       // Redirect based on user role
+      let destination;
       switch (user.role) {
         case 'admin':
-          navigate('/admin-dashboard');
+          destination = '/admin-dashboard';
           break;
         case 'seller':
-          navigate('/seller-dashboard');
+          destination = '/seller-dashboard';
           break;
         case 'buyer':
-          navigate('/buyer-dashboard');
+          destination = '/buyer-dashboard';
           break;
         default:
-          navigate('/');
+          destination = '/';
       }
+      
+      // Use a timeout to ensure state is updated before navigation
+      setTimeout(() => {
+        navigate(destination, { replace: true });
+      }, 100);
     }
-  }, [isAuthenticated, user, isLoading, navigate]);
+  }, [isAuthenticated, user, isLoading, navigate, from]);
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-agricream p-4">

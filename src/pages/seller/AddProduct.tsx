@@ -170,7 +170,11 @@ const AddProduct = () => {
         description: 'Your product has been submitted for admin approval.',
       });
       
-      navigate('/seller-dashboard');
+      // Add a slight delay before navigation to ensure toast is visible
+      setTimeout(() => {
+        navigate('/seller-dashboard', { replace: true });
+      }, 1000);
+      
     } catch (error) {
       console.error('Error submitting product:', error);
       toast({
@@ -178,7 +182,6 @@ const AddProduct = () => {
         description: error instanceof Error ? error.message : 'There was an error submitting your product. Please try again.',
         variant: 'destructive',
       });
-    } finally {
       setIsSubmitting(false);
     }
   };

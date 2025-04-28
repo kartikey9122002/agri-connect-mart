@@ -1,115 +1,64 @@
 
-import React, { createContext, useContext } from 'react';
-import { User, UserRole } from '@/types';
-import { useToast } from '@/components/ui/use-toast';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, Session } from '@supabase/supabase-js';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useAuthSetup } from '@/hooks/useAuthSetup';
+import { User as AppUser, UserRole } from '@/types';
 
 interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
+  user: AppUser | null;
+  setUser: React.Dispatch<React.SetStateAction<AppUser | null>>;
+  session: Session | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<any>;
+  register: (email: string, password: string, name: string, role: UserRole) => Promise<any>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { toast } = useToast();
+export function AuthProvider({ children }: { children: ReactNode }) {
   const {
-    user, 
+    user,
     setUser,
     session,
     setSession,
     isLoading,
     setIsLoading,
-    login: supabaseLogin,
-    register: supabaseRegister,
-    logout: supabaseLogout
+    login,
+    register,
+    logout,
   } = useSupabaseAuth();
 
-  // Set up authentication listeners and initialization
+  // Setup auth state listener and check for existing session
   useAuthSetup(setUser, setSession, setIsLoading);
 
-  const login = async (email: string, password: string) => {
-    try {
-      await supabaseLogin(email, password);
-      toast({
-        title: 'Login successful',
-        description: 'Welcome back to AgriConnect Mart!',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Login failed',
-        description: error?.message || 'An error occurred during login. Please check your credentials and try again.',
-        variant: 'destructive',
-      });
-      throw error;
-    }
-  };
-
-  const register = async (email: string, password: string, name: string, role: UserRole) => {
-    try {
-      await supabaseRegister(email, password, name, role);
-      toast({
-        title: 'Registration successful',
-        description: 'Your account has been created. You will be redirected to your dashboard.',
-      });
-    } catch (error: any) {
-      if (error?.message?.includes('already registered')) {
-        toast({
-          title: 'Registration failed',
-          description: 'This email is already registered. Please try logging in instead.',
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: 'Registration failed',
-          description: error?.message || 'An error occurred during registration. Please try again.',
-          variant: 'destructive',
-        });
-      }
-      throw error;
-    }
-  };
-
-  const logout = async () => {
-    try {
-      await supabaseLogout();
-      toast({
-        title: 'Logout successful',
-        description: 'You have been logged out successfully.',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Logout failed',
-        description: error?.message || 'An error occurred during logout.',
-        variant: 'destructive',
-      });
-      throw error;
-    }
-  };
+  // Derived state
+  const isAuthenticated = !!user && !!session;
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      isAuthenticated: !!user,
-      isLoading,
-      login,
-      register,
-      logout
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        session,
+        isLoading,
+        isAuthenticated,
+        login,
+        register,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
-};
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
