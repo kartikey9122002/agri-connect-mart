@@ -26,26 +26,14 @@ const SchemesPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Fetch schemes from the database
+  // Fetch schemes from the database or use default ones
   useEffect(() => {
     const fetchSchemes = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('government_schemes')
-          .select('*');
-
-        if (error) {
-          throw error;
-        }
-
-        if (data && data.length > 0) {
-          setSchemes(data as GovScheme[]);
-          setFilteredSchemes(data as GovScheme[]);
-        } else {
-          // Use the mock data if no schemes are in the database yet
-          useDefaultSchemes();
-        }
+        // Note: Since government_schemes table doesn't exist yet, 
+        // we'll use default schemes for now
+        useDefaultSchemes();
       } catch (error) {
         console.error('Error fetching government schemes:', error);
         toast({
@@ -65,7 +53,7 @@ const SchemesPage = () => {
 
   // Use mock data temporarily until real data is available
   const useDefaultSchemes = () => {
-    const defaultSchemes = [
+    const defaultSchemes: GovScheme[] = [
       {
         id: '1',
         title: 'National Agriculture Market (e-NAM)',

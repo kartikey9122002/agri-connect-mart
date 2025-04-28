@@ -18,7 +18,7 @@ export interface Product {
   category: string;
   sellerId: string;
   sellerName: string;
-  status: "pending" | "approved" | "rejected" | "unavailable";
+  status: string; // Changed from union type to string to match DB return type
   createdAt: string;
   updatedAt: string;
 }
@@ -48,6 +48,7 @@ export interface GovScheme {
   applicationUrl: string;
   createdAt: string;
   updatedAt: string;
+  category?: string; // Added optional category field
 }
 
 export interface PricePrediction {

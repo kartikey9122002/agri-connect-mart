@@ -48,7 +48,7 @@ const SellerDashboard = () => {
         if (error) throw error;
 
         // Format products
-        const formattedProducts = data.map(item => ({
+        const formattedProducts: Product[] = data.map(item => ({
           id: item.id,
           name: item.name,
           description: item.description || '',

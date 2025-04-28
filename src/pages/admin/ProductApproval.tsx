@@ -26,7 +26,7 @@ const ProductApproval = () => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('*, profiles(full_name)')
+        .select('*, profiles:seller_id(full_name)')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import ProductGrid from '@/components/products/ProductGrid';
 import ProductFilters, { FiltersType } from '@/components/products/ProductFilters';
@@ -32,7 +33,7 @@ const ProductsPage = () => {
         // Only fetch approved products
         const { data, error } = await supabase
           .from('products')
-          .select('*, profiles(full_name)')
+          .select('*, profiles:seller_id(full_name)')
           .eq('status', 'approved');
 
         if (error) {
