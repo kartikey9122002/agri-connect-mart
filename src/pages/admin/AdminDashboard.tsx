@@ -40,6 +40,8 @@ const AdminDashboard = () => {
           .eq('status', 'pending');
         
         if (pendingError) throw pendingError;
+       
+
 
         // Fetch total products count
         const { count: productsCount, error: productsError } = await supabase
@@ -70,15 +72,20 @@ const AdminDashboard = () => {
           totalOrders: ordersCount || 0,
           activeSchemes: 6 // Default for now
         });
+        
+        console.log('pendingCount raw value:', pendingCount);
+        console.log('Type:', typeof pendingCount);
 
         // Fetch recent activity (products awaiting approval)
-        if (pendingCount && pendingCount > 0) {
+        if (pendingCount > 0) {
           const { data: pendingProducts, error } = await supabase
             .from('products')
             .select('name, created_at')
             .eq('status', 'pending')
             .order('created_at', { ascending: false })
             .limit(5);
+
+
           
           if (!error && pendingProducts) {
             const activity = pendingProducts.map(product => ({
@@ -203,7 +210,7 @@ const AdminDashboard = () => {
                     className={`w-full flex justify-between items-center ${stats.pendingProducts > 0 ? 'bg-agrigreen-600' : ''}`}
                     asChild
                   >
-                    <Link to="/admin/products/approval">
+                    <Link to="/admin/ProductApproval">
                       <div className="flex items-center gap-2">
                         <PackageOpen className="h-4 w-4" />
                         <span>Review Product Submissions</span>

@@ -13,7 +13,7 @@ import { useStorageSetup } from '@/hooks/useStorageSetup';
 const AddProduct = () => {
   const navigate = useNavigate();
   const [category, setCategory] = useState('');
-  const { isStorageReady } = useStorageSetup();
+  // const { isStorageReady } = useStorageSetup();
   const { imageFiles, imagePreviews, imageError, handleImageChange, removeImage, validateImages } = useProductImages();
   const { isSubmitting, submitProduct } = useProductSubmission();
 
@@ -30,13 +30,13 @@ const AddProduct = () => {
     );
   };
 
-  if (!isStorageReady) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <p>Setting up storage...</p>
-      </div>
-    );
-  }
+  // if (!isStorageReady) {
+  //   return (
+  //     <div className="container mx-auto px-4 py-8">
+  //       <p>Setting up storage...</p>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="container mx-auto px-4 py-8">

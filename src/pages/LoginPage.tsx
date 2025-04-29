@@ -29,7 +29,7 @@ const LoginPage = () => {
           destination = '/seller-dashboard';
           break;
         case 'buyer':
-          destination = '/buyer-dashboard';
+          destination = '/products';
           break;
         default:
           destination = '/';

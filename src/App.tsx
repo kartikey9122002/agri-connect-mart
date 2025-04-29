@@ -40,7 +40,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/product-approval" element={<ProductApproval />} />
+            <Route path="/admin/ProductApproval" element={<ProductApproval />} />
             <Route path="/seller-dashboard" element={<SellerDashboard />} />
             <Route path="/seller/add-product" element={<AddProduct />} />
             <Route path="/buyer-dashboard" element={<BuyerDashboard />} />
