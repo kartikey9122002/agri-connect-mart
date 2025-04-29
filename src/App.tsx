@@ -12,6 +12,9 @@ import RegisterPage from '@/pages/RegisterPage';
 import NotFound from '@/pages/NotFound';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import ProductApproval from '@/pages/admin/ProductApproval';
+import ManageUsers from '@/pages/admin/ManageUsers';
+import ViewOrders from '@/pages/admin/ViewOrders';
+import ManageSchemes from '@/pages/admin/ManageSchemes';
 import SellerDashboard from '@/pages/seller/SellerDashboard';
 import AddProduct from '@/pages/seller/AddProduct';
 import BuyerDashboard from '@/pages/buyer/BuyerDashboard';
@@ -40,7 +43,10 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/ProductApproval" element={<ProductApproval />} />
+            <Route path="/admin/product-approval" element={<ProductApproval />} />
+            <Route path="/admin/manage-users" element={<ManageUsers />} />
+            <Route path="/admin/view-orders" element={<ViewOrders />} />
+            <Route path="/admin/manage-schemes" element={<ManageSchemes />} />
             <Route path="/seller-dashboard" element={<SellerDashboard />} />
             <Route path="/seller/add-product" element={<AddProduct />} />
             <Route path="/buyer-dashboard" element={<BuyerDashboard />} />

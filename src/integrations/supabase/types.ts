@@ -177,6 +177,42 @@ export type Database = {
         }
         Relationships: []
       }
+      schemes: {
+        Row: {
+          application_url: string
+          benefits: string
+          category: string
+          created_at: string
+          description: string
+          eligibility: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          application_url: string
+          benefits: string
+          category: string
+          created_at?: string
+          description: string
+          eligibility: string
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          application_url?: string
+          benefits?: string
+          category?: string
+          created_at?: string
+          description?: string
+          eligibility?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

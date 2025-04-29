@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -210,7 +209,7 @@ const AdminDashboard = () => {
                     className={`w-full flex justify-between items-center ${stats.pendingProducts > 0 ? 'bg-agrigreen-600' : ''}`}
                     asChild
                   >
-                    <Link to="/admin/ProductApproval">
+                    <Link to="/admin/product-approval">
                       <div className="flex items-center gap-2">
                         <PackageOpen className="h-4 w-4" />
                         <span>Review Product Submissions</span>
@@ -229,7 +228,7 @@ const AdminDashboard = () => {
                     className="w-full flex justify-between items-center"
                     asChild
                   >
-                    <Link to="/admin/users">
+                    <Link to="/admin/manage-users">
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
                         <span>Manage Users</span>
@@ -243,7 +242,7 @@ const AdminDashboard = () => {
                     className="w-full flex justify-between items-center"
                     asChild
                   >
-                    <Link to="/admin/orders">
+                    <Link to="/admin/view-orders">
                       <div className="flex items-center gap-2">
                         <CreditCard className="h-4 w-4" />
                         <span>View Orders</span>
@@ -257,7 +256,7 @@ const AdminDashboard = () => {
                     className="w-full flex justify-between items-center"
                     asChild
                   >
-                    <Link to="/admin/schemes">
+                    <Link to="/admin/manage-schemes">
                       <div className="flex items-center gap-2">
                         <FileCheck className="h-4 w-4" />
                         <span>Manage Schemes</span>
