@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { FileText, ArrowRight, Users, Tractor, Calendar, ChevronRight } from 'lucide-react';
+import { FileText, ArrowRight, Users, Tractor, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { GovScheme } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
@@ -26,14 +26,27 @@ const SchemesPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Fetch schemes from the database or use default ones
   useEffect(() => {
     const fetchSchemes = async () => {
       setIsLoading(true);
       try {
-        // Note: Since government_schemes table doesn't exist yet, 
-        // we'll use default schemes for now
-        useDefaultSchemes();
+        const { data, error } = await supabase.from('schemes').select('*');
+        if (error) throw error;
+
+        const transformedData: GovScheme[] = data.map(scheme => ({
+          id: scheme.id,
+          title: scheme.title,
+          description: scheme.description,
+          eligibility: scheme.eligibility,
+          benefits: scheme.benefits,
+          applicationUrl: scheme.application_url,
+          category: scheme.category,
+          createdAt: scheme.created_at,
+          updatedAt: scheme.updated_at,
+        }));
+
+        setSchemes(transformedData);
+        setFilteredSchemes(transformedData);
       } catch (error) {
         console.error('Error fetching government schemes:', error);
         toast({
@@ -41,8 +54,6 @@ const SchemesPage = () => {
           description: 'There was an error loading government schemes. Please try again.',
           variant: 'destructive',
         });
-        // Use mock data as fallback
-        useDefaultSchemes();
       } finally {
         setIsLoading(false);
       }
@@ -51,56 +62,12 @@ const SchemesPage = () => {
     fetchSchemes();
   }, [toast]);
 
-  // Use mock data temporarily until real data is available
-  const useDefaultSchemes = () => {
-    const defaultSchemes: GovScheme[] = [
-      {
-        id: '1',
-        title: 'National Agriculture Market (e-NAM)',
-        description: 'A pan-India electronic trading portal that networks existing agricultural markets to create a unified national market for agricultural commodities.',
-        eligibility: 'All farmers, traders, and processors',
-        benefits: 'Transparent price discovery, increased market access, reduced intermediaries',
-        applicationUrl: '#',
-        category: 'Market Access',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: '2',
-        title: 'PM Kisan Samman Nidhi Yojana',
-        description: 'Financial benefit of ₹6000 per year in three equal installments to eligible farmer families.',
-        eligibility: 'All land-holding farmers with certain exclusions',
-        benefits: 'Direct financial support for agricultural expenses and household needs',
-        applicationUrl: '#',
-        category: 'Financial Aid',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      // Keep a few default schemes for now - they will be replaced by real data later
-      {
-        id: '3',
-        title: 'Soil Health Card Scheme',
-        description: 'Government scheme to issue soil cards to farmers which will carry crop-wise recommendations of nutrients and fertilizers required.',
-        eligibility: 'All farmers with agricultural land',
-        benefits: 'Improved soil health, optimized fertilizer usage, higher crop yields',
-        applicationUrl: '#',
-        category: 'Agricultural Support',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ];
-    setSchemes(defaultSchemes);
-    setFilteredSchemes(defaultSchemes);
-  };
-
-  // Filter schemes based on search and category
   useEffect(() => {
     if (schemes.length > 0) {
       const filtered = schemes.filter(scheme => {
         const matchesSearch = scheme.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             scheme.description.toLowerCase().includes(searchTerm.toLowerCase());
+                              scheme.description.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = selectedCategory === 'All Categories' || scheme.category === selectedCategory;
-        
         return matchesSearch && matchesCategory;
       });
       setFilteredSchemes(filtered);
