@@ -16,10 +16,15 @@ const SellerDashboard = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      console.log("SellerDashboard: No user found, skipping product fetch");
+      return;
+    }
     
     const fetchSellerProducts = async () => {
       setIsLoading(true);
+      console.log(`SellerDashboard: Fetching products for seller ${user.id}`);
+      
       try {
         const { data, error } = await supabase
           .from('products')
@@ -27,18 +32,25 @@ const SellerDashboard = () => {
           .eq('seller_id', user.id);
 
         if (error) {
+          console.error("Error fetching seller products:", error);
           throw error;
         }
+
+        console.log(`SellerDashboard: Found ${data?.length || 0} products for seller ${user.id}`);
 
         // Process the data to match our Product type
         const formattedProducts = await Promise.all(
           data.map(async (item) => {
             // Get seller name from profile
-            const { data: profileData } = await supabase
+            const { data: profileData, error: profileError } = await supabase
               .from('profiles')
               .select('full_name')
               .eq('id', item.seller_id)
               .single();
+              
+            if (profileError) {
+              console.warn(`Could not fetch profile for seller ${item.seller_id}:`, profileError);
+            }
               
             return {
               id: item.id,
@@ -57,8 +69,9 @@ const SellerDashboard = () => {
         );
 
         setProducts(formattedProducts);
+        console.log("SellerDashboard: Successfully processed seller products");
       } catch (error) {
-        console.error('Error fetching products:', error);
+        console.error('Error in SellerDashboard:', error);
         toast({
           title: 'Failed to load products',
           description: 'There was an error loading your products. Please try again.',
@@ -70,6 +83,31 @@ const SellerDashboard = () => {
     };
 
     fetchSellerProducts();
+    
+    // Set up real-time subscription for product status changes
+    console.log("Setting up realtime subscription for seller's product updates");
+    const channel = supabase
+      .channel('seller-product-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'products',
+          filter: `seller_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Received real-time seller product update:', payload);
+          // Refresh the products list when updates occur
+          fetchSellerProducts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log("Cleaning up seller product updates subscription");
+      supabase.removeChannel(channel);
+    };
   }, [user, toast]);
 
   const getStatusBadgeClass = (status: string) => {
@@ -121,6 +159,12 @@ const SellerDashboard = () => {
                     {products.filter(p => p.status === 'pending').length}
                   </p>
                 </div>
+                <div>
+                  <p className="text-sm text-gray-500">Rejected</p>
+                  <p className="text-2xl font-bold">
+                    {products.filter(p => p.status === 'rejected').length}
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -149,6 +193,10 @@ const SellerDashboard = () => {
                             src={product.images[0]}
                             alt={product.name}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error(`Failed to load image for product ${product.id}`);
+                              (e.target as HTMLImageElement).src = "https://via.placeholder.com/150?text=No+Image";
+                            }}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">

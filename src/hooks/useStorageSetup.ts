@@ -9,11 +9,13 @@ export function useStorageSetup() {
 
   useEffect(() => {
     const initializeStorage = async () => {
+      console.log("Initializing storage setup...");
       try {
         // First check if the bucket already exists
         const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
         
         if (bucketsError) {
+          console.error("Error listing storage buckets:", bucketsError);
           throw bucketsError;
         }
         
@@ -25,6 +27,7 @@ export function useStorageSetup() {
           return;
         }
         
+        console.log('Product images bucket not found, creating new bucket...');
         // If bucket doesn't exist, try to create it
         const { error } = await supabase.storage.createBucket('product-images', {
           public: true,
@@ -33,10 +36,10 @@ export function useStorageSetup() {
         });
         
         if (!error) {
-          console.log('Product images bucket created');
+          console.log('Product images bucket successfully created');
           setIsStorageReady(true);
         } else if (error.message === 'Bucket already exists') {
-          console.log('Product images bucket already exists');
+          console.log('Product images bucket already exists (from error)');
           setIsStorageReady(true);
         } else {
           console.error('Error creating storage bucket:', error);
@@ -48,6 +51,11 @@ export function useStorageSetup() {
         }
       } catch (error) {
         console.error('Error initializing storage:', error);
+        toast({
+          title: 'Storage Error',
+          description: 'Could not initialize storage. Please try again later.',
+          variant: 'destructive',
+        });
       }
     };
 

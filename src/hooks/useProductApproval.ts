@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { Product } from '@/types';
 
 export const useProductApproval = () => {
@@ -11,6 +11,8 @@ export const useProductApproval = () => {
 
   const fetchPendingProducts = async () => {
     setIsLoading(true);
+    console.log("Fetching pending products for admin approval");
+    
     try {
       // Using a proper join by first fetching products and then getting seller information separately
       const { data: productsData, error: productsError } = await supabase
@@ -19,17 +21,26 @@ export const useProductApproval = () => {
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      if (productsError) throw productsError;
+      if (productsError) {
+        console.error("Error fetching pending products:", productsError);
+        throw productsError;
+      }
+
+      console.log(`Found ${productsData?.length || 0} pending products`);
 
       // Now fetch profiles for these products
       const formattedProducts: Product[] = await Promise.all(
         productsData.map(async (item) => {
           // Get seller profile information
-          const { data: profileData } = await supabase
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('full_name')
             .eq('id', item.seller_id)
             .single();
+
+          if (profileError) {
+            console.warn(`Could not fetch profile for seller ${item.seller_id}:`, profileError);
+          }
 
           return {
             id: item.id,
@@ -48,8 +59,9 @@ export const useProductApproval = () => {
       );
 
       setPendingProducts(formattedProducts);
+      console.log("Successfully processed pending products for admin review");
     } catch (error) {
-      console.error('Error fetching pending products:', error);
+      console.error('Error in useProductApproval hook:', error);
       toast({
         title: 'Failed to load',
         description: 'There was an error loading pending products.',
@@ -61,14 +73,19 @@ export const useProductApproval = () => {
   };
 
   const handleApprove = async (productId: string) => {
+    console.log(`Attempting to approve product: ${productId}`);
     try {
       const { error } = await supabase
         .from('products')
         .update({ status: 'approved' })
         .eq('id', productId);
 
-      if (error) throw error;
+      if (error) {
+        console.error(`Error approving product ${productId}:`, error);
+        throw error;
+      }
 
+      console.log(`Successfully approved product: ${productId}`);
       setPendingProducts(prev => prev.filter(product => product.id !== productId));
       
       toast({
@@ -76,7 +93,7 @@ export const useProductApproval = () => {
         description: 'The product has been approved and is now live.',
       });
     } catch (error) {
-      console.error('Error approving product:', error);
+      console.error('Error in handleApprove function:', error);
       toast({
         title: 'Approval failed',
         description: 'There was an error approving this product.',
@@ -86,14 +103,19 @@ export const useProductApproval = () => {
   };
 
   const handleReject = async (productId: string) => {
+    console.log(`Attempting to reject product: ${productId}`);
     try {
       const { error } = await supabase
         .from('products')
         .update({ status: 'rejected' })
         .eq('id', productId);
 
-      if (error) throw error;
+      if (error) {
+        console.error(`Error rejecting product ${productId}:`, error);
+        throw error;
+      }
 
+      console.log(`Successfully rejected product: ${productId}`);
       setPendingProducts(prev => prev.filter(product => product.id !== productId));
       
       toast({
@@ -101,7 +123,7 @@ export const useProductApproval = () => {
         description: 'The product has been rejected.',
       });
     } catch (error) {
-      console.error('Error rejecting product:', error);
+      console.error('Error in handleReject function:', error);
       toast({
         title: 'Rejection failed',
         description: 'There was an error rejecting this product.',
@@ -112,6 +134,7 @@ export const useProductApproval = () => {
 
   useEffect(() => {
     fetchPendingProducts();
+    console.log("Setting up realtime subscription for product updates");
 
     // Set up real-time subscription for product status changes
     const channel = supabase
@@ -125,6 +148,7 @@ export const useProductApproval = () => {
           filter: 'status=pending'
         },
         (payload) => {
+          console.log('Received real-time product update:', payload);
           // Refresh the products list when updates occur
           fetchPendingProducts();
         }
@@ -132,6 +156,7 @@ export const useProductApproval = () => {
       .subscribe();
 
     return () => {
+      console.log("Cleaning up product updates subscription");
       supabase.removeChannel(channel);
     };
   }, []);

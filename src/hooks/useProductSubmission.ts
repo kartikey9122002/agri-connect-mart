@@ -12,6 +12,7 @@ export const useProductSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const uploadImages = async (productId: string, imageFiles: File[]): Promise<string[]> => {
+    console.log(`Uploading ${imageFiles.length} images for product ${productId}`);
     const imageUrls: string[] = [];
 
     for (let i = 0; i < imageFiles.length; i++) {
@@ -20,22 +21,28 @@ export const useProductSubmission = () => {
       const fileName = `${productId}/${Date.now()}-${i}.${fileExt}`;
       const filePath = `${fileName}`;
 
+      console.log(`Uploading image ${i + 1}/${imageFiles.length}: ${filePath}`);
+
       const { data, error } = await supabase.storage
         .from('product-images')
         .upload(filePath, file);
 
       if (error) {
-        console.error('Error uploading image:', error);
+        console.error(`Error uploading image ${i + 1}/${imageFiles.length}:`, error);
         throw new Error(`Error uploading image ${i + 1}: ${error.message}`);
       }
+
+      console.log(`Successfully uploaded image ${i + 1}/${imageFiles.length}`);
 
       const { data: { publicUrl } } = supabase.storage
         .from('product-images')
         .getPublicUrl(filePath);
 
+      console.log(`Generated public URL for image ${i + 1}: ${publicUrl}`);
       imageUrls.push(publicUrl);
     }
 
+    console.log(`All ${imageFiles.length} images uploaded successfully`);
     return imageUrls;
   };
 
@@ -46,6 +53,7 @@ export const useProductSubmission = () => {
     category: string;
   }, imageFiles: File[]) => {
     if (!user) {
+      console.error("Product submission attempted without user authentication");
       toast({
         title: 'Authentication error',
         description: 'You must be logged in to add products',
@@ -54,9 +62,17 @@ export const useProductSubmission = () => {
       return;
     }
 
+    console.log("Starting product submission process", {
+      user: user.id,
+      productData: data,
+      imageCount: imageFiles.length
+    });
+    
     setIsSubmitting(true);
 
     try {
+      // First create the product record
+      console.log("Creating product record in database");
       const { data: product, error } = await supabase
         .from('products')
         .insert({
@@ -72,26 +88,35 @@ export const useProductSubmission = () => {
         .single();
 
       if (error) {
+        console.error("Failed to create product record:", error);
         throw new Error(`Failed to create product: ${error.message}`);
       }
 
+      console.log("Product record created successfully:", product.id);
+
+      // Now upload the product images
       const imageUrls = await uploadImages(product.id, imageFiles);
 
+      // Update the product record with image URLs
+      console.log("Updating product with image URLs");
       const { error: updateError } = await supabase
         .from('products')
         .update({ images: imageUrls })
         .eq('id', product.id);
 
       if (updateError) {
+        console.error("Failed to update product with images:", updateError);
         throw new Error(`Failed to update product with images: ${updateError.message}`);
       }
 
+      console.log("Product submission completed successfully");
       toast({
         title: 'Product submitted',
         description: 'Your product has been submitted for admin approval.',
       });
       
       setTimeout(() => {
+        console.log("Redirecting to seller dashboard");
         navigate('/seller-dashboard', { replace: true });
       }, 1000);
       
