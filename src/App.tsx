@@ -22,8 +22,8 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import useStorageSetup from '@/hooks/useStorageSetup';
 
 function App() {
-  // Initialize storage buckets
-  useStorageSetup();
+  // Initialize storage buckets and set up database columns
+  const { isStorageReady } = useStorageSetup();
   
   return (
     <BrowserRouter>
@@ -33,7 +33,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/schemes" element={<SchemesPage />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />

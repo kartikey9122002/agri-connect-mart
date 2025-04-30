@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Product, PricePrediction } from '@/types';
@@ -19,6 +18,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import VoiceCommandButton from '@/components/buyer/VoiceCommandButton';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,7 +59,7 @@ const ProductDetail = () => {
           sellerId: data.seller_id,
           sellerName: profileData?.full_name || 'Unknown Seller',
           status: data.status,
-          availability: data.availability || 'available',
+          availability: (data as any).availability || 'available',
           createdAt: data.created_at,
           updatedAt: data.updated_at
         };
@@ -142,6 +142,19 @@ const ProductDetail = () => {
     });
   };
 
+  const handleVoiceCommand = (command: string) => {
+    if (command.toLowerCase().includes('add to cart') && product) {
+      handleAddToCart();
+    } else if (command.toLowerCase().includes('chat') && product) {
+      handleChatWithSeller();
+    } else {
+      toast({
+        title: 'Command not recognized',
+        description: 'Please try again with a valid command.',
+      });
+    }
+  };
+
   if (isLoading) {
     return <div className="text-center py-12">Loading product details...</div>;
   }
@@ -190,7 +203,11 @@ const ProductDetail = () => {
         </div>
 
         <div>
-          <h1 className="text-3xl font-bold text-agrigreen-900 mb-2">{product.name}</h1>
+          <div className="flex justify-between items-start">
+            <h1 className="text-3xl font-bold text-agrigreen-900 mb-2">{product.name}</h1>
+            <VoiceCommandButton onCommandDetected={handleVoiceCommand} />
+          </div>
+          
           <div className="flex items-center mb-4">
             <span className="text-agrigreen-700 font-bold text-2xl">₹{product.price.toFixed(2)}</span>
             <Badge className="ml-3 bg-agrigreen-100 text-agrigreen-800">

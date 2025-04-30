@@ -10,7 +10,7 @@ const useStorageSetup = () => {
     try {
       // This is a hacky way to check if column exists, by trying to select it
       const { error } = await supabase
-        .from(table)
+        .from(table as any)
         .select(column)
         .limit(1);
 

@@ -59,7 +59,7 @@ const ProductsPage = () => {
               sellerId: product.seller_id,
               sellerName: profileData?.full_name || 'Unknown Seller',
               status: product.status,
-              availability: product.availability || 'available',
+              availability: (product as any).availability || 'available',
               createdAt: product.created_at,
               updatedAt: product.updated_at
             } as Product;
