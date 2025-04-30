@@ -1,11 +1,13 @@
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Hook to set up storage buckets and other infrastructure on app initialization
  */
 export function useStorageSetup() {
+  const [isStorageReady, setIsStorageReady] = useState(false);
+
   useEffect(() => {
     const setupStorage = async () => {
       console.log('Setting up storage and infrastructure...');
@@ -15,8 +17,10 @@ export function useStorageSetup() {
         await ensureProductAvailabilityColumn();
         
         console.log('Storage setup complete');
+        setIsStorageReady(true);
       } catch (error) {
         console.error('Error during storage setup:', error);
+        setIsStorageReady(false);
       }
     };
 
@@ -81,6 +85,8 @@ export function useStorageSetup() {
       console.error('Error in addAvailabilityColumn:', error);
     }
   };
+  
+  return { isStorageReady };
 }
 
 export default useStorageSetup;

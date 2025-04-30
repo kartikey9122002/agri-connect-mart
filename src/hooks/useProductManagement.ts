@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,38 +39,35 @@ export const useProductManagement = () => {
   };
 
   const updateProductAvailability = async (productId: string, availability: 'available' | 'unavailable') => {
-    setIsUpdating(true);
     try {
-      console.log(`Updating product ${productId} availability to ${availability}`);
-      // First, check if the availability column exists in the products table
       const { error } = await supabase
         .from('products')
-        .update({ 
-          // Using this format to update an object with a dynamic field name
-          // that may not exist yet in the database schema
-          ...(availability && { availability: availability }) 
-        })
+        .update({ availability })
         .eq('id', productId);
 
       if (error) {
-        throw error;
+        console.error('Error updating product availability:', error);
+        toast({
+          title: 'Failed to update availability',
+          description: 'There was an error updating the product availability. Please try again.',
+          variant: 'destructive',
+        });
+        return false;
       }
 
       toast({
-        title: 'Availability updated',
-        description: `Product is now set to ${availability}.`,
+        title: 'Product updated',
+        description: `Product is now ${availability}.`,
       });
       return true;
     } catch (error) {
-      console.error('Error updating product availability:', error);
+      console.error('Error in updateProductAvailability:', error);
       toast({
-        title: 'Update failed',
-        description: 'There was an error updating the product availability. Please try again.',
+        title: 'Error',
+        description: 'An unexpected error occurred.',
         variant: 'destructive',
       });
       return false;
-    } finally {
-      setIsUpdating(false);
     }
   };
 

@@ -17,8 +17,8 @@ export interface Product {
   category: string;
   sellerId: string;
   sellerName: string;
-  status: string; // Changed from union type to string to match DB return type
-  availability: 'available' | 'unavailable';  // Added availability field
+  status: string;
+  availability: 'available' | 'unavailable';
   createdAt: string;
   updatedAt: string;
 }
@@ -33,8 +33,8 @@ export interface Order {
     price: number;
   }[];
   totalAmount: number;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
   deliveryAddress: string;
+  status: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,7 +48,7 @@ export interface GovScheme {
   applicationUrl: string;
   createdAt: string;
   updatedAt: string;
-  category?: string; // Added optional category field
+  category?: string;
 }
 
 export interface PricePrediction {

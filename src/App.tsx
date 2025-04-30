@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import MainLayout from '@/components/layout/MainLayout';
@@ -19,18 +19,12 @@ import SellerDashboard from '@/pages/seller/SellerDashboard';
 import AddProduct from '@/pages/seller/AddProduct';
 import BuyerDashboard from '@/pages/buyer/BuyerDashboard';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { useStorageSetup } from '@/hooks/useStorageSetup';
+import useStorageSetup from '@/hooks/useStorageSetup';
 
 function App() {
   // Initialize storage buckets
-  const { isStorageReady } = useStorageSetup();
+  useStorageSetup();
   
-  useEffect(() => {
-    if (isStorageReady) {
-      console.log('Storage buckets are ready for use');
-    }
-  }, [isStorageReady]);
-
   return (
     <BrowserRouter>
       <AuthProvider>
