@@ -1,48 +1,82 @@
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 
-export function useStorageSetup() {
-  const [isStorageReady, setIsStorageReady] = useState<boolean>(false);
+export const useStorageSetup = () => {
+  const [isStorageReady, setIsStorageReady] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    const checkStorage = async () => {
-      console.log("Checking storage setup...");
+    const setupStorageBuckets = async () => {
       try {
-        const { data: buckets, error } = await supabase.storage.listBuckets();
-        
-        if (error) {
-          console.error("Error listing storage buckets:", error);
-          throw error;
+        // Check if product-images bucket exists
+        const { data: buckets, error: bucketsError } = await supabase
+          .storage
+          .listBuckets();
+
+        if (bucketsError) {
+          throw bucketsError;
         }
 
-        const productImagesBucketExists = buckets.some(bucket => bucket.name === 'product-images');
-        console.log('Buckets:', buckets);
+        const productImagesBucket = buckets.find(b => b.name === 'product-images');
         
-        if (productImagesBucketExists) {
-          console.log('Product images bucket found.');
-          setIsStorageReady(true);
+        if (!productImagesBucket) {
+          console.log('Creating product-images bucket');
+          
+          // Create the bucket
+          const { error: createError } = await supabase
+            .storage
+            .createBucket('product-images', { public: true });
+
+          if (createError) {
+            throw createError;
+          }
+          
+          console.log('Successfully created product-images bucket');
         } else {
-          console.error('Product images bucket NOT found.');
-          toast({
-            title: 'Storage Error',
-            description: 'Required storage bucket not found. Please check your setup.',
-            variant: 'destructive',
-          });
+          console.log('product-images bucket already exists');
         }
+
+        // Also check for availability column in products table
+        const { error: columnError } = await supabase.rpc('check_column_exists', { 
+          target_table: 'products',
+          target_column: 'availability'
+        });
+
+        if (columnError) {
+          console.log('Adding availability column to products table');
+          
+          // Add availability column to products table
+          const { error: alterError } = await supabase.rpc('add_column_if_not_exists', {
+            target_table: 'products',
+            target_column: 'availability',
+            column_type: 'text',
+            default_value: '\'available\''
+          });
+
+          if (alterError) {
+            console.error('Error adding availability column:', alterError);
+          } else {
+            console.log('Successfully added availability column to products table');
+          }
+        } else {
+          console.log('availability column already exists in products table');
+        }
+
+        setIsStorageReady(true);
       } catch (error) {
-        console.error('Error checking storage:', error);
+        console.error('Error setting up storage:', error);
         toast({
-          title: 'Storage Error',
-          description: 'Could not verify storage. Please try again later.',
+          title: 'Storage setup issue',
+          description: 'There was a problem setting up storage. Some features may not work correctly.',
           variant: 'destructive',
         });
       }
     };
 
-    checkStorage();
-  }, []);
+    setupStorageBuckets();
+  }, [toast]);
 
   return { isStorageReady };
-}
+};

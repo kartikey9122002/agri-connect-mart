@@ -1,4 +1,3 @@
-
 export type UserRole = "seller" | "buyer" | "admin";
 
 export interface User {
@@ -19,6 +18,7 @@ export interface Product {
   sellerId: string;
   sellerName: string;
   status: string; // Changed from union type to string to match DB return type
+  availability: 'available' | 'unavailable';  // Added availability field
   createdAt: string;
   updatedAt: string;
 }
@@ -71,4 +71,26 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   isRead: boolean;
+}
+
+export interface BuyerInteraction {
+  id: string;
+  buyerId: string;
+  buyerName: string;
+  productId: string;
+  type: 'inquiry' | 'review' | 'message';
+  content: string;
+  createdAt: string;
+}
+
+export interface ProductReceipt {
+  id: string;
+  productId: string;
+  productName: string;
+  orderId: string;
+  quantity: number;
+  totalPrice: number;
+  buyerId: string;
+  buyerName: string;
+  createdAt: string;
 }
