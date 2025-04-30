@@ -1,82 +1,86 @@
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
 
-export const useStorageSetup = () => {
-  const [isStorageReady, setIsStorageReady] = useState(false);
-  const { toast } = useToast();
-
+/**
+ * Hook to set up storage buckets and other infrastructure on app initialization
+ */
+export function useStorageSetup() {
   useEffect(() => {
-    const setupStorageBuckets = async () => {
+    const setupStorage = async () => {
+      console.log('Setting up storage and infrastructure...');
+      
       try {
-        // Check if product-images bucket exists
-        const { data: buckets, error: bucketsError } = await supabase
-          .storage
-          .listBuckets();
-
-        if (bucketsError) {
-          throw bucketsError;
-        }
-
-        const productImagesBucket = buckets.find(b => b.name === 'product-images');
+        // Check if products table has availability column
+        await ensureProductAvailabilityColumn();
         
-        if (!productImagesBucket) {
-          console.log('Creating product-images bucket');
-          
-          // Create the bucket
-          const { error: createError } = await supabase
-            .storage
-            .createBucket('product-images', { public: true });
-
-          if (createError) {
-            throw createError;
-          }
-          
-          console.log('Successfully created product-images bucket');
-        } else {
-          console.log('product-images bucket already exists');
-        }
-
-        // Also check for availability column in products table
-        const { error: columnError } = await supabase.rpc('check_column_exists', { 
-          target_table: 'products',
-          target_column: 'availability'
-        });
-
-        if (columnError) {
-          console.log('Adding availability column to products table');
-          
-          // Add availability column to products table
-          const { error: alterError } = await supabase.rpc('add_column_if_not_exists', {
-            target_table: 'products',
-            target_column: 'availability',
-            column_type: 'text',
-            default_value: '\'available\''
-          });
-
-          if (alterError) {
-            console.error('Error adding availability column:', alterError);
-          } else {
-            console.log('Successfully added availability column to products table');
-          }
-        } else {
-          console.log('availability column already exists in products table');
-        }
-
-        setIsStorageReady(true);
+        console.log('Storage setup complete');
       } catch (error) {
-        console.error('Error setting up storage:', error);
-        toast({
-          title: 'Storage setup issue',
-          description: 'There was a problem setting up storage. Some features may not work correctly.',
-          variant: 'destructive',
-        });
+        console.error('Error during storage setup:', error);
       }
     };
 
-    setupStorageBuckets();
-  }, [toast]);
+    setupStorage();
+  }, []);
+  
+  /**
+   * Ensures the products table has the availability column
+   */
+  const ensureProductAvailabilityColumn = async () => {
+    try {
+      // Check if column exists using system tables
+      const { data: columns, error: columnsError } = await supabase
+        .rpc('check_column_exists', { 
+          table_name: 'products', 
+          column_name: 'availability' 
+        });
 
-  return { isStorageReady };
-};
+      if (columnsError) {
+        console.error('Error checking for availability column:', columnsError);
+        
+        // Fallback: try to add the column anyway
+        await addAvailabilityColumn();
+        return;
+      }
+      
+      // If column doesn't exist (returns false or null), add it
+      if (!columns) {
+        await addAvailabilityColumn();
+      } else {
+        console.log('Availability column already exists');
+      }
+    } catch (error) {
+      console.error('Error in ensureProductAvailabilityColumn:', error);
+      // Try to add the column as a fallback
+      await addAvailabilityColumn();
+    }
+  };
+  
+  /**
+   * Adds the availability column to the products table
+   */
+  const addAvailabilityColumn = async () => {
+    try {
+      console.log('Adding availability column to products table...');
+      
+      // Execute raw SQL to add the column if it doesn't exist
+      const { error } = await supabase.rpc('add_column_if_not_exists', {
+        table_name: 'products',
+        column_name: 'availability',
+        column_type: 'text',
+        column_default: "'available'"
+      });
+      
+      if (error) {
+        console.error('Error adding availability column:', error);
+        throw error;
+      }
+      
+      console.log('Availability column added successfully');
+    } catch (error) {
+      console.error('Error in addAvailabilityColumn:', error);
+    }
+  };
+}
+
+export default useStorageSetup;

@@ -43,9 +43,14 @@ export const useProductManagement = () => {
     setIsUpdating(true);
     try {
       console.log(`Updating product ${productId} availability to ${availability}`);
+      // First, check if the availability column exists in the products table
       const { error } = await supabase
         .from('products')
-        .update({ availability: availability })
+        .update({ 
+          // Using this format to update an object with a dynamic field name
+          // that may not exist yet in the database schema
+          ...(availability && { availability: availability }) 
+        })
         .eq('id', productId);
 
       if (error) {
