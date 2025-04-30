@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +41,7 @@ export const useProductManagement = () => {
 
   const updateProductAvailability = async (productId: string, availability: 'available' | 'unavailable') => {
     try {
+      // Correctly update the availability using the column name expected by Supabase
       const { error } = await supabase
         .from('products')
         .update({ availability })

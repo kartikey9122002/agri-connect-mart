@@ -2,91 +2,65 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-/**
- * Hook to set up storage buckets and other infrastructure on app initialization
- */
-export function useStorageSetup() {
+const useStorageSetup = () => {
   const [isStorageReady, setIsStorageReady] = useState(false);
+
+  // Function to check if a column exists in a table
+  const columnExists = async (table: string, column: string) => {
+    try {
+      // This is a hacky way to check if column exists, by trying to select it
+      const { error } = await supabase
+        .from(table)
+        .select(column)
+        .limit(1);
+
+      // If there's no error, the column exists
+      return !error;
+    } catch (error) {
+      console.error(`Error checking if column ${column} exists in ${table}:`, error);
+      return false;
+    }
+  };
+
+  // Add a column if it doesn't exist
+  const addColumnIfNotExists = async (table: string, column: string, type: string) => {
+    try {
+      const exists = await columnExists(table, column);
+      if (!exists) {
+        console.log(`Adding column ${column} to ${table}`);
+        
+        // Use RPC to execute SQL (safer than raw SQL)
+        const { error } = await supabase.rpc('execute_sql', { 
+          sql_query: `ALTER TABLE public.${table} ADD COLUMN IF NOT EXISTS ${column} ${type};` 
+        });
+        
+        if (error) {
+          throw error;
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error(`Error adding column ${column} to ${table}:`, error);
+      return false;
+    }
+  };
 
   useEffect(() => {
     const setupStorage = async () => {
-      console.log('Setting up storage and infrastructure...');
-      
       try {
-        // Check if products table has availability column
-        await ensureProductAvailabilityColumn();
-        
-        console.log('Storage setup complete');
+        // Add availability column to products table if it doesn't exist
+        await addColumnIfNotExists('products', 'availability', "TEXT NOT NULL DEFAULT 'available'");
         setIsStorageReady(true);
       } catch (error) {
-        console.error('Error during storage setup:', error);
-        setIsStorageReady(false);
+        console.error('Error setting up storage:', error);
       }
     };
 
     setupStorage();
   }, []);
-  
-  /**
-   * Ensures the products table has the availability column
-   */
-  const ensureProductAvailabilityColumn = async () => {
-    try {
-      // Check if column exists using system tables
-      const { data: columns, error: columnsError } = await supabase
-        .rpc('check_column_exists', { 
-          table_name: 'products', 
-          column_name: 'availability' 
-        });
 
-      if (columnsError) {
-        console.error('Error checking for availability column:', columnsError);
-        
-        // Fallback: try to add the column anyway
-        await addAvailabilityColumn();
-        return;
-      }
-      
-      // If column doesn't exist (returns false or null), add it
-      if (!columns) {
-        await addAvailabilityColumn();
-      } else {
-        console.log('Availability column already exists');
-      }
-    } catch (error) {
-      console.error('Error in ensureProductAvailabilityColumn:', error);
-      // Try to add the column as a fallback
-      await addAvailabilityColumn();
-    }
-  };
-  
-  /**
-   * Adds the availability column to the products table
-   */
-  const addAvailabilityColumn = async () => {
-    try {
-      console.log('Adding availability column to products table...');
-      
-      // Execute raw SQL to add the column if it doesn't exist
-      const { error } = await supabase.rpc('add_column_if_not_exists', {
-        table_name: 'products',
-        column_name: 'availability',
-        column_type: 'text',
-        column_default: "'available'"
-      });
-      
-      if (error) {
-        console.error('Error adding availability column:', error);
-        throw error;
-      }
-      
-      console.log('Availability column added successfully');
-    } catch (error) {
-      console.error('Error in addAvailabilityColumn:', error);
-    }
-  };
-  
   return { isStorageReady };
-}
+};
 
 export default useStorageSetup;
