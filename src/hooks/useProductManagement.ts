@@ -41,10 +41,9 @@ export const useProductManagement = () => {
 
   const updateProductAvailability = async (productId: string, availability: 'available' | 'unavailable') => {
     try {
-      // Use a type assertion to handle the availability field
       const { error } = await supabase
         .from('products')
-        .update({ availability } as any)
+        .update({ availability })
         .eq('id', productId);
 
       if (error) {

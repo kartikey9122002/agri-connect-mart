@@ -1,134 +1,275 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ShoppingCart, Menu, User, LogOut } from 'lucide-react';
-import {
+import { Button } from '@/components/ui/button';
+import { 
+  Menu, X, ChevronDown, User, ShoppingCart, LogOut, Settings,
+  LayoutDashboard, Package, Users, FileText, Tractor, Home
+} from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
+import { useCart } from '@/hooks/useCart';
 
 const Header = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { cartItems, fetchCartItems } = useCart();
+  
+  // Fetch cart items when user changes
+  React.useEffect(() => {
+    if (user) {
+      fetchCartItems();
+    }
+  }, [user, fetchCartItems]);
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account",
+      });
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast({
+        title: "Logout failed",
+        description: "There was a problem logging out",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Get dashboard route based on user role
+  const getDashboardRoute = () => {
+    if (!user) return '/login';
+    
+    switch (user.role) {
+      case 'admin':
+        return '/admin-dashboard';
+      case 'seller':
+        return '/seller-dashboard';
+      case 'buyer':
+        return '/buyer-dashboard';
+      default:
+        return '/';
+    }
+  };
 
   return (
-    <header className="bg-white shadow-sm border-b border-green-100">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="bg-agrigreen-500 text-white p-1 rounded-md">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-              <polyline points="9 22 9 12 15 12 15 22"></polyline>
-            </svg>
-          </div>
-          <span className="font-bold text-xl text-agrigreen-800">AgriConnect Mart</span>
-        </Link>
+    <header className="bg-white shadow-sm sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="flex items-center">
+            <span className="text-2xl font-bold text-agrigreen-700">AgriConnect</span>
+            <span className="text-sm bg-agrigreen-100 text-agrigreen-800 px-2 py-1 rounded ml-2">MART</span>
+          </Link>
 
-        <div className="hidden md:flex items-center gap-4">
-          <Link to="/products" className="text-agrigreen-700 hover:text-agrigreen-900">Products</Link>
-          <Link to="/schemes" className="text-agrigreen-700 hover:text-agrigreen-900">Gov. Schemes</Link>
-          {!isAuthenticated && (
-            <>
-              <Link to="/login">
-                <Button variant="outline" className="border-agrigreen-500 text-agrigreen-500">Login</Button>
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link to="/" className="text-gray-600 hover:text-agrigreen-700">Home</Link>
+            <Link to="/products" className="text-gray-600 hover:text-agrigreen-700">Products</Link>
+            <Link to="/schemes" className="text-gray-600 hover:text-agrigreen-700">Schemes</Link>
+            
+            {/* Show dashboard link if user is logged in */}
+            {user && (
+              <Link to={getDashboardRoute()} className="text-gray-600 hover:text-agrigreen-700">
+                Dashboard
               </Link>
-              <Link to="/register">
-                <Button className="bg-agrigreen-500 hover:bg-agrigreen-600">Register</Button>
-              </Link>
-            </>
-          )}
-          {isAuthenticated && user?.role === 'buyer' && (
-            <Link to="/cart" className="text-agrigreen-700 hover:text-agrigreen-900">
-              <ShoppingCart className="w-5 h-5" />
-            </Link>
-          )}
-          {isAuthenticated && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-full">
-                  <User className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Link to={`/${user?.role}-dashboard`} className="w-full flex">
-                    {user?.role === 'seller' && 'Seller Dashboard'}
-                    {user?.role === 'buyer' && 'My Orders'}
-                    {user?.role === 'admin' && 'Admin Dashboard'}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link to="/profile" className="w-full flex">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Logout</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
+            )}
+          </nav>
 
-        <div className="md:hidden">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuItem>
-                <Link to="/products" className="w-full">Products</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Link to="/schemes" className="w-full">Government Schemes</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {!isAuthenticated && (
-                <>
-                  <DropdownMenuItem>
-                    <Link to="/login" className="w-full">Login</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Link to="/register" className="w-full">Register</Link>
-                  </DropdownMenuItem>
-                </>
-              )}
-              {isAuthenticated && (
-                <>
-                  {user?.role === 'buyer' && (
-                    <DropdownMenuItem>
-                      <Link to="/cart" className="w-full">My Cart</Link>
+          {/* Desktop Right Section */}
+          <div className="hidden md:flex items-center gap-4">
+            {user ? (
+              <>
+                <Link to="/cart" className="relative">
+                  <Button variant="ghost" size="sm" className="text-gray-600">
+                    <ShoppingCart className="h-5 w-5" />
+                    {cartItems.length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-agrigreen-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                        {cartItems.length}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      {user.name}
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    
+                    <DropdownMenuItem onClick={() => navigate(getDashboardRoute())}>
+                      <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
                     </DropdownMenuItem>
+                    
+                    {user.role === 'seller' && (
+                      <DropdownMenuItem onClick={() => navigate('/seller/add-product')}>
+                        <Package className="mr-2 h-4 w-4" /> Add Product
+                      </DropdownMenuItem>
+                    )}
+                    
+                    {user.role === 'buyer' && (
+                      <DropdownMenuItem onClick={() => navigate('/cart')}>
+                        <ShoppingCart className="mr-2 h-4 w-4" /> Cart
+                      </DropdownMenuItem>
+                    )}
+                    
+                    {user.role === 'admin' && (
+                      <>
+                        <DropdownMenuItem onClick={() => navigate('/admin/product-approval')}>
+                          <Package className="mr-2 h-4 w-4" /> Product Approval
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/admin/manage-users')}>
+                          <Users className="mr-2 h-4 w-4" /> Manage Users
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                      <LogOut className="mr-2 h-4 w-4" /> Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="outline">Login</Button>
+                </Link>
+                <Link to="/register">
+                  <Button className="bg-agrigreen-600 hover:bg-agrigreen-700">Register</Button>
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* Mobile Toggle */}
+          <div className="md:hidden flex items-center gap-2">
+            {user && (
+              <Link to="/cart" className="relative mr-2">
+                <Button variant="ghost" size="sm" className="text-gray-600 p-1">
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartItems.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-agrigreen-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                      {cartItems.length}
+                    </span>
                   )}
-                  <DropdownMenuItem>
-                    <Link to={`/${user?.role}-dashboard`} className="w-full">
-                      {user?.role === 'seller' && 'Seller Dashboard'}
-                      {user?.role === 'buyer' && 'My Orders'}
-                      {user?.role === 'admin' && 'Admin Dashboard'}
+                </Button>
+              </Link>
+            )}
+            <Button variant="ghost" onClick={toggleMenu}>
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden mt-2 py-4 bg-white border-t">
+            <div className="flex flex-col space-y-3">
+              <Link to="/" className="px-4 py-2 hover:bg-gray-50" onClick={toggleMenu}>
+                <div className="flex items-center">
+                  <Home className="h-5 w-5 mr-2" /> Home
+                </div>
+              </Link>
+              <Link to="/products" className="px-4 py-2 hover:bg-gray-50" onClick={toggleMenu}>
+                <div className="flex items-center">
+                  <Package className="h-5 w-5 mr-2" /> Products
+                </div>
+              </Link>
+              <Link to="/schemes" className="px-4 py-2 hover:bg-gray-50" onClick={toggleMenu}>
+                <div className="flex items-center">
+                  <FileText className="h-5 w-5 mr-2" /> Schemes
+                </div>
+              </Link>
+              
+              {user ? (
+                <>
+                  <div className="border-t border-gray-200 my-2 px-4"></div>
+                  <Link 
+                    to={getDashboardRoute()} 
+                    className="px-4 py-2 hover:bg-gray-50" 
+                    onClick={toggleMenu}
+                  >
+                    <div className="flex items-center">
+                      <LayoutDashboard className="h-5 w-5 mr-2" /> Dashboard
+                    </div>
+                  </Link>
+                  
+                  {user.role === 'seller' && (
+                    <Link 
+                      to="/seller/add-product" 
+                      className="px-4 py-2 hover:bg-gray-50" 
+                      onClick={toggleMenu}
+                    >
+                      <div className="flex items-center">
+                        <Tractor className="h-5 w-5 mr-2" /> Add Product
+                      </div>
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Link to="/profile" className="w-full">Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Logout</span>
-                  </DropdownMenuItem>
+                  )}
+                  
+                  <button 
+                    onClick={() => {
+                      handleLogout();
+                      toggleMenu();
+                    }} 
+                    className="px-4 py-2 text-left text-red-600 hover:bg-gray-50 w-full"
+                  >
+                    <div className="flex items-center">
+                      <LogOut className="h-5 w-5 mr-2" /> Logout
+                    </div>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="border-t border-gray-200 my-2 px-4"></div>
+                  <Link 
+                    to="/login" 
+                    className="px-4 py-2 hover:bg-gray-50" 
+                    onClick={toggleMenu}
+                  >
+                    <div className="flex items-center">
+                      <User className="h-5 w-5 mr-2" /> Login
+                    </div>
+                  </Link>
+                  <Link 
+                    to="/register" 
+                    className="px-4 py-2 bg-agrigreen-50 text-agrigreen-700 hover:bg-agrigreen-100" 
+                    onClick={toggleMenu}
+                  >
+                    <div className="flex items-center">
+                      <User className="h-5 w-5 mr-2" /> Register
+                    </div>
+                  </Link>
                 </>
               )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );

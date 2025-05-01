@@ -18,6 +18,7 @@ import ManageSchemes from '@/pages/admin/ManageSchemes';
 import SellerDashboard from '@/pages/seller/SellerDashboard';
 import AddProduct from '@/pages/seller/AddProduct';
 import BuyerDashboard from '@/pages/buyer/BuyerDashboard';
+import CartPage from '@/pages/buyer/CartPage';
 import { AuthProvider } from '@/contexts/AuthContext';
 import useStorageSetup from '@/hooks/useStorageSetup';
 
@@ -44,6 +45,7 @@ function App() {
             <Route path="/seller-dashboard" element={<SellerDashboard />} />
             <Route path="/seller/add-product" element={<AddProduct />} />
             <Route path="/buyer-dashboard" element={<BuyerDashboard />} />
+            <Route path="/cart" element={<CartPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </MainLayout>

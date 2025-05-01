@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Product, PricePrediction } from '@/types';
@@ -19,6 +20,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import VoiceCommandButton from '@/components/buyer/VoiceCommandButton';
+import ProductChatDialog from '@/components/buyer/ProductChatDialog';
+import { useCart } from '@/hooks/useCart';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +30,7 @@ const ProductDetail = () => {
   const [sellerSchemes, setSellerSchemes] = useState<{ title: string; description: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { addToCart } = useCart();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -128,25 +132,21 @@ const ProductDetail = () => {
     ]);
   };
 
-  const handleAddToCart = () => {
-    toast({
-      title: 'Added to cart',
-      description: `${product?.name} has been added to your cart.`,
-    });
-  };
-
-  const handleChatWithSeller = () => {
-    toast({
-      title: 'Chat feature coming soon',
-      description: 'Our real-time chat feature will be available soon!',
-    });
+  const handleAddToCart = async () => {
+    if (product) {
+      await addToCart(product);
+    }
   };
 
   const handleVoiceCommand = (command: string) => {
     if (command.toLowerCase().includes('add to cart') && product) {
       handleAddToCart();
     } else if (command.toLowerCase().includes('chat') && product) {
-      handleChatWithSeller();
+      // Chat dialog is now handled by the ProductChatDialog component
+      toast({
+        title: 'Voice Command',
+        description: 'Say "open chat" to start chatting with the seller',
+      });
     } else {
       toast({
         title: 'Command not recognized',
@@ -257,14 +257,7 @@ const ProductDetail = () => {
               Add to Cart
             </Button>
             
-            <Button 
-              variant="outline" 
-              className="border-agrigreen-600 text-agrigreen-600 hover:bg-agrigreen-50"
-              onClick={handleChatWithSeller}
-            >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Chat with Seller
-            </Button>
+            <ProductChatDialog product={product} />
           </div>
         </div>
       </div>
