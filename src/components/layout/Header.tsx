@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -23,14 +22,11 @@ const Header = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { cartItems, fetchCartItems } = useCart();
+  const { cartItems } = useCart();
   
-  // Fetch cart items when user changes
-  React.useEffect(() => {
-    if (user) {
-      fetchCartItems();
-    }
-  }, [user, fetchCartItems]);
+  // We removed the useEffect hook that was trying to call fetchCartItems
+  // since that function doesn't exist in the useCart hook
+  // The cartItems are already being fetched in the useCart hook
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
