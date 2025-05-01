@@ -10,7 +10,7 @@ const useStorageSetup = () => {
     try {
       // This is a hacky way to check if column exists, by trying to select it
       const { error } = await supabase
-        .from(table as any)
+        .from(table)
         .select(column)
         .limit(1);
 
@@ -32,7 +32,7 @@ const useStorageSetup = () => {
         // Use RPC to execute SQL (safer than raw SQL)
         const { error } = await supabase.rpc('execute_sql', { 
           sql_query: `ALTER TABLE public.${table} ADD COLUMN IF NOT EXISTS ${column} ${type};` 
-        } as any);
+        });
         
         if (error) {
           throw error;

@@ -11,7 +11,23 @@ import { ShoppingBag, MessageCircle, History, Receipt, TrendingUp } from 'lucide
 import OrderTracker from '@/components/buyer/OrderTracker';
 import PaymentReceipt from '@/components/buyer/PaymentReceipt';
 import VoiceCommandButton from '@/components/buyer/VoiceCommandButton';
-import { Product, Order, ProductReceipt } from '@/types';
+import { Product, ProductReceipt } from '@/types';
+
+interface Order {
+  id: string;
+  buyerId: string;
+  products: {
+    productId: string;
+    productName: string;
+    quantity: number;
+    price: number;
+  }[];
+  totalAmount: number;
+  deliveryAddress: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const BuyerDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -31,17 +47,50 @@ const BuyerDashboard = () => {
         // Fetch recent orders
         const { data: orderData, error: orderError } = await supabase
           .from('orders')
-          .select('*')
+          .select(`
+            id,
+            buyer_id,
+            delivery_address,
+            total_amount,
+            status,
+            created_at,
+            updated_at,
+            order_items (
+              id,
+              product_id,
+              product_name,
+              quantity,
+              price
+            )
+          `)
           .eq('buyer_id', user.id)
           .order('created_at', { ascending: false })
           .limit(5);
 
         if (orderError) throw orderError;
-        setOrders(orderData || []);
+        
+        // Process orders into our Order type
+        const processedOrders = (orderData || []).map(order => ({
+          id: order.id,
+          buyerId: order.buyer_id,
+          products: (order.order_items || []).map(item => ({
+            productId: item.product_id || '',
+            productName: item.product_name,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          totalAmount: order.total_amount,
+          deliveryAddress: order.delivery_address,
+          status: order.status,
+          createdAt: order.created_at,
+          updatedAt: order.updated_at
+        }));
+        
+        setOrders(processedOrders);
 
         // For demo purposes, generate mock receipts
         if (orderData && orderData.length > 0) {
-          generateMockReceipts(orderData);
+          generateMockReceipts(processedOrders);
         }
 
         // Fetch recently viewed products
@@ -73,7 +122,7 @@ const BuyerDashboard = () => {
               sellerId: product.seller_id,
               sellerName: profileData?.full_name || 'Unknown Seller',
               status: product.status,
-              availability: (product as any).availability || 'available',
+              availability: product.availability || 'available',
               createdAt: product.created_at,
               updatedAt: product.updated_at
             } as Product;
@@ -127,10 +176,7 @@ const BuyerDashboard = () => {
       const searchTerm = command.replace('search for', '').trim();
       window.location.href = `/products?search=${encodeURIComponent(searchTerm)}`;
     } else if (command.includes('chat')) {
-      toast({
-        title: "Chat Feature",
-        description: "Chat with seller feature coming soon!",
-      });
+      window.location.href = `/buyer/messages`;
     } else if (command.includes('filter')) {
       window.location.href = `/products?sort=price_asc`;
     } else {
@@ -228,6 +274,17 @@ const BuyerDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+            
+            {orders.length > 0 && (
+              <div className="mt-6">
+                <Link to={`/buyer/receipt/${orders[0].id}`}>
+                  <Button variant="outline" className="w-full">
+                    <Receipt className="mr-2 h-4 w-4" />
+                    View Latest Order Receipt
+                  </Button>
+                </Link>
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="receipts">
@@ -246,6 +303,15 @@ const BuyerDashboard = () => {
                   </CardContent>
                 </Card>
               )}
+            </div>
+            
+            <div className="mt-6 text-center">
+              <Link to="/buyer/history">
+                <Button variant="outline">
+                  <History className="mr-2 h-4 w-4" />
+                  View Full Purchase History
+                </Button>
+              </Link>
             </div>
           </TabsContent>
           
@@ -286,8 +352,11 @@ const BuyerDashboard = () => {
                 )}
                 
                 <div className="mt-4 text-center">
-                  <Link to="/products">
-                    <Button variant="outline">Browse All Products</Button>
+                  <Link to="/buyer/history">
+                    <Button variant="outline">
+                      <History className="mr-2 h-4 w-4" />
+                      View Full Browsing History
+                    </Button>
                   </Link>
                 </div>
               </CardContent>
@@ -302,13 +371,28 @@ const BuyerDashboard = () => {
                   Chat with Sellers
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-center py-12">
-                <p className="text-gray-500 mb-4">
-                  Chat with sellers feature coming soon! 
-                  <br />
-                  You'll be able to directly communicate with farmers and sellers.
-                </p>
-                <Button disabled>Coming Soon</Button>
+              <CardContent>
+                <div className="text-center py-6">
+                  <p className="text-gray-500 mb-4">
+                    Communicate directly with farmers and sellers about their products.
+                  </p>
+                  <Link to="/buyer/messages">
+                    <Button className="bg-agrigreen-600 hover:bg-agrigreen-700">
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Go to Messages
+                    </Button>
+                  </Link>
+                </div>
+                
+                <div className="mt-6 border-t pt-4">
+                  <h3 className="font-medium mb-2">How to start a conversation:</h3>
+                  <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600">
+                    <li>Visit a product page</li>
+                    <li>Click on "Chat with Seller"</li>
+                    <li>Ask questions about the product</li>
+                    <li>Discuss delivery options or special requirements</li>
+                  </ul>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

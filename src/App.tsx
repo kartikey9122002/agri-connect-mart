@@ -19,6 +19,10 @@ import SellerDashboard from '@/pages/seller/SellerDashboard';
 import AddProduct from '@/pages/seller/AddProduct';
 import BuyerDashboard from '@/pages/buyer/BuyerDashboard';
 import CartPage from '@/pages/buyer/CartPage';
+import PaymentReceiptPage from '@/pages/buyer/PaymentReceiptPage';
+import BrowsingHistoryPage from '@/pages/buyer/BrowsingHistoryPage';
+import BuyerMessagesPage from '@/pages/buyer/BuyerMessagesPage';
+import SellerMessagesPage from '@/pages/seller/SellerMessagesPage';
 import { AuthProvider } from '@/contexts/AuthContext';
 import useStorageSetup from '@/hooks/useStorageSetup';
 
@@ -44,8 +48,12 @@ function App() {
             <Route path="/admin/manage-schemes" element={<ManageSchemes />} />
             <Route path="/seller-dashboard" element={<SellerDashboard />} />
             <Route path="/seller/add-product" element={<AddProduct />} />
+            <Route path="/seller/messages" element={<SellerMessagesPage />} />
             <Route path="/buyer-dashboard" element={<BuyerDashboard />} />
             <Route path="/cart" element={<CartPage />} />
+            <Route path="/buyer/receipt/:orderId" element={<PaymentReceiptPage />} />
+            <Route path="/buyer/history" element={<BrowsingHistoryPage />} />
+            <Route path="/buyer/messages" element={<BuyerMessagesPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </MainLayout>
