@@ -7,6 +7,7 @@ export interface User {
   name: string;
   role: UserRole;
   createdAt: string;
+  isBlocked?: boolean;
 }
 
 export interface Product {
@@ -73,6 +74,7 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   isRead: boolean;
+  threadId?: string;
 }
 
 export interface BuyerInteraction {
@@ -96,4 +98,17 @@ export interface ProductReceipt {
   buyerName: string;
   createdAt: string;
   deliveryAddress?: string;
+}
+
+export interface WeatherData {
+  location: string;
+  temperature: number;
+  condition: string;
+  icon: string;
+  forecast: {
+    date: string;
+    temperature: number;
+    condition: string;
+    icon: string;
+  }[];
 }

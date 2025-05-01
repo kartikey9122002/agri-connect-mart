@@ -8,8 +8,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { 
-  BarChart, Check, PackageOpen, Users, FileCheck, MessageSquare, CreditCard, ChevronRight, Package, AlertCircle
+  BarChart, Check, PackageOpen, Users, FileCheck, MessageCircle, CreditCard, ChevronRight, Package, AlertCircle
 } from 'lucide-react';
+import ProductAnalyticsChart from '@/components/admin/ProductAnalyticsChart';
+import RecentActivityLog from '@/components/admin/RecentActivityLog';
 
 const AdminDashboard = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -196,6 +198,10 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
+          <div className="mb-6">
+            <ProductAnalyticsChart />
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="col-span-1">
               <CardHeader>
@@ -270,115 +276,70 @@ const AdminDashboard = () => {
 
             <Card className="col-span-1">
               <CardHeader>
-                <CardTitle>Analytics Overview</CardTitle>
-                <CardDescription>Platform performance metrics</CardDescription>
+                <CardTitle>System Status</CardTitle>
+                <CardDescription>Platform health metrics</CardDescription>
               </CardHeader>
-              <CardContent className="h-[220px] flex items-center justify-center">
-                <div className="text-center">
-                  <BarChart className="h-10 w-10 mx-auto text-gray-400 mb-3" />
-                  <p className="text-gray-500 mb-2">Detailed analytics coming soon</p>
-                  <Button variant="outline" size="sm">View Reports</Button>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-green-100 p-2 rounded-full">
+                        <Check className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Order Processing</p>
+                        <p className="text-sm text-gray-500">All systems operational</p>
+                      </div>
+                    </div>
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Online</span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-green-100 p-2 rounded-full">
+                        <Check className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Payment Processing</p>
+                        <p className="text-sm text-gray-500">All systems operational</p>
+                      </div>
+                    </div>
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Online</span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-green-100 p-2 rounded-full">
+                        <Check className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Authentication</p>
+                        <p className="text-sm text-gray-500">All systems operational</p>
+                      </div>
+                    </div>
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Online</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-amber-100 p-2 rounded-full">
+                        <AlertCircle className="h-4 w-4 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Analytics Engine</p>
+                        <p className="text-sm text-gray-500">Under maintenance</p>
+                      </div>
+                    </div>
+                    <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">Partial</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
-
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Platform Status</CardTitle>
-              <CardDescription>System health and operations</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-green-100 p-2 rounded-full">
-                      <Check className="h-4 w-4 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Order Processing</p>
-                      <p className="text-sm text-gray-500">All systems operational</p>
-                    </div>
-                  </div>
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Online</span>
-                </div>
-
-                <div className="flex items-center justify-between border-b pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-green-100 p-2 rounded-full">
-                      <Check className="h-4 w-4 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Payment Processing</p>
-                      <p className="text-sm text-gray-500">All systems operational</p>
-                    </div>
-                  </div>
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Online</span>
-                </div>
-
-                <div className="flex items-center justify-between border-b pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-green-100 p-2 rounded-full">
-                      <Check className="h-4 w-4 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">User Authentication</p>
-                      <p className="text-sm text-gray-500">All systems operational</p>
-                    </div>
-                  </div>
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Online</span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-amber-100 p-2 rounded-full">
-                      <AlertCircle className="h-4 w-4 text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Analytics Engine</p>
-                      <p className="text-sm text-gray-500">Under maintenance</p>
-                    </div>
-                  </div>
-                  <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">Partial</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         <div className="lg:col-span-1">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest platform updates</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[500px] pr-4">
-                <div className="space-y-4">
-                  {recentActivity.length > 0 ? (
-                    recentActivity.map((item, index) => (
-                      <div key={index} className="flex gap-3 pb-4 border-b last:border-0">
-                        <div className="bg-amber-100 p-2 h-8 w-8 rounded-full flex items-center justify-center shrink-0">
-                          {item.type === 'product' && <PackageOpen className="h-4 w-4 text-amber-600" />}
-                          {item.type === 'order' && <CreditCard className="h-4 w-4 text-purple-600" />}
-                          {item.type === 'user' && <Users className="h-4 w-4 text-blue-600" />}
-                        </div>
-                        <div>
-                          <p className="text-sm">{item.message}</p>
-                          <p className="text-xs text-gray-500">{item.date}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <Check className="h-8 w-8 mx-auto text-gray-300 mb-3" />
-                      <p className="text-gray-500">No recent activity</p>
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+          <RecentActivityLog />
         </div>
       </div>
     </div>

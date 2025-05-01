@@ -2,8 +2,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, Share2, CreditCard } from 'lucide-react';
+import { Download, Share2, CreditCard, Mail } from 'lucide-react';
 import { ProductReceipt } from '@/types';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 interface PaymentReceiptProps {
   receipt: ProductReceipt;
@@ -22,15 +24,86 @@ const PaymentReceipt: React.FC<PaymentReceiptProps> = ({ receipt }) => {
   };
 
   const handleDownload = () => {
-    // Placeholder for download functionality
-    console.log('Downloading receipt:', receipt.id);
-    // In a real app, generate PDF or other format for download
+    // Generate PDF for download
+    const doc = new jsPDF();
+    
+    // Add header
+    doc.setFontSize(20);
+    doc.setTextColor(39, 174, 96);
+    doc.text("AgriConnect Mart", 105, 20, { align: "center" });
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text("Payment Receipt", 105, 30, { align: "center" });
+    
+    // Receipt details
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    
+    // Create a two-column layout for receipt details
+    const startY = 50;
+    const leftCol = 20;
+    const rightCol = 120;
+    
+    doc.text("Receipt ID:", leftCol, startY);
+    doc.text(`#${receipt.id.slice(0, 8)}`, leftCol + 25, startY);
+    
+    doc.text("Date:", leftCol, startY + 10);
+    doc.text(formatDate(receipt.createdAt), leftCol + 25, startY + 10);
+    
+    doc.text("Product:", leftCol, startY + 20);
+    doc.text(receipt.productName, leftCol + 25, startY + 20);
+    
+    doc.text("Quantity:", leftCol, startY + 30);
+    doc.text(receipt.quantity.toString(), leftCol + 25, startY + 30);
+    
+    doc.text("Unit Price:", leftCol, startY + 40);
+    doc.text(`₹${(receipt.totalPrice / receipt.quantity).toFixed(2)}`, leftCol + 25, startY + 40);
+    
+    doc.text("Total Amount:", leftCol, startY + 50);
+    doc.text(`₹${receipt.totalPrice.toFixed(2)}`, leftCol + 25, startY + 50);
+    
+    if (receipt.deliveryAddress) {
+      doc.text("Delivery Address:", leftCol, startY + 60);
+      doc.text(receipt.deliveryAddress, leftCol + 25, startY + 60, { maxWidth: 100 });
+    }
+    
+    // Add footer
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text("Thank you for shopping with AgriConnect Mart!", 105, pageHeight - 20, { align: "center" });
+    doc.text("For any queries, please contact support@agriconnect.com", 105, pageHeight - 15, { align: "center" });
+    
+    // Save PDF
+    doc.save(`AgriConnect_Receipt_${receipt.id.slice(0, 8)}.pdf`);
   };
 
   const handleShare = () => {
-    // Placeholder for share functionality
-    console.log('Sharing receipt:', receipt.id);
-    // In a real app, use Web Share API or other sharing method
+    // Share receipt via email
+    const subject = `Your AgriConnect Mart Receipt #${receipt.id.slice(0, 8)}`;
+    const body = `
+Dear Customer,
+
+Thank you for your purchase from AgriConnect Mart!
+
+Receipt Details:
+- Receipt ID: #${receipt.id.slice(0, 8)}
+- Date: ${formatDate(receipt.createdAt)}
+- Product: ${receipt.productName}
+- Quantity: ${receipt.quantity}
+- Unit Price: ₹${(receipt.totalPrice / receipt.quantity).toFixed(2)}
+- Total Amount: ₹${receipt.totalPrice.toFixed(2)}
+${receipt.deliveryAddress ? `- Delivery Address: ${receipt.deliveryAddress}` : ''}
+
+If you have any questions about your order, please contact our customer support at support@agriconnect.com.
+
+Thank you for supporting local farmers!
+AgriConnect Mart Team
+`;
+
+    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoLink);
   };
 
   return (
@@ -99,15 +172,15 @@ const PaymentReceipt: React.FC<PaymentReceiptProps> = ({ receipt }) => {
             onClick={handleDownload}
           >
             <Download className="mr-2 h-4 w-4" />
-            Download
+            Download PDF
           </Button>
           <Button 
             variant="outline" 
             className="flex-1" 
             onClick={handleShare}
           >
-            <Share2 className="mr-2 h-4 w-4" />
-            Share
+            <Mail className="mr-2 h-4 w-4" />
+            Share via Email
           </Button>
         </div>
 
