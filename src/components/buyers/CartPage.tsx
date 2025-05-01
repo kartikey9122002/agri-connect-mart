@@ -1,10 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { CartItem, useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { 
   ShoppingCart, Trash, Plus, Minus, ArrowLeft, ShoppingBag, AlertCircle, Truck
 } from 'lucide-react';
@@ -16,12 +15,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom';
 
 const CartPage: React.FC = () => {
   const { 
@@ -36,6 +34,7 @@ const CartPage: React.FC = () => {
   const { user } = useAuth();
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -44,6 +43,7 @@ const CartPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Handle quantity changes without page refresh
   const handleQuantityChange = (item: CartItem, incrementBy: number) => {
     const newQuantity = Math.max(1, item.quantity + incrementBy);
     updateCartItemQuantity(item.id, newQuantity);
@@ -63,10 +63,30 @@ const CartPage: React.FC = () => {
       return;
     }
 
-    const result = await placeOrder(deliveryAddress);
-    if (result.success) {
-      setConfirmDialogOpen(false);
-      navigate('/buyer-dashboard');
+    setIsProcessing(true);
+    try {
+      const result = await placeOrder(deliveryAddress);
+      
+      if (result && 'success' in result && result.success) {
+        setConfirmDialogOpen(false);
+        navigate('/buyer-dashboard');
+      } else {
+        // Handle order placement error
+        toast({
+          title: 'Failed to place order',
+          description: 'There was an error processing your order. Please try again later.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error during checkout:', error);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred during checkout.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -171,6 +191,7 @@ const CartPage: React.FC = () => {
                               size="sm" 
                               className="px-2"
                               onClick={() => handleQuantityChange(item, -1)}
+                              type="button"
                             >
                               <Minus className="h-4 w-4" />
                             </Button>
@@ -180,6 +201,7 @@ const CartPage: React.FC = () => {
                               size="sm" 
                               className="px-2"
                               onClick={() => handleQuantityChange(item, 1)}
+                              type="button"
                             >
                               <Plus className="h-4 w-4" />
                             </Button>
@@ -195,6 +217,7 @@ const CartPage: React.FC = () => {
                               size="sm" 
                               className="text-red-500 hover:text-red-700 hover:bg-red-50"
                               onClick={() => handleRemoveItem(item.id)}
+                              type="button"
                             >
                               <Trash className="h-4 w-4" />
                             </Button>
@@ -249,6 +272,7 @@ const CartPage: React.FC = () => {
                   <Button 
                     className="w-full bg-agrigreen-600 hover:bg-agrigreen-700" 
                     disabled={cartItems.length === 0}
+                    type="button"
                   >
                     Proceed to Checkout
                   </Button>
@@ -301,14 +325,20 @@ const CartPage: React.FC = () => {
                   </div>
                   
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setConfirmDialogOpen(false)}
+                      type="button"
+                    >
                       Cancel
                     </Button>
                     <Button 
                       className="bg-agrigreen-600 hover:bg-agrigreen-700"
                       onClick={handleCheckout}
+                      disabled={isProcessing}
+                      type="button"
                     >
-                      Place Order
+                      {isProcessing ? 'Processing...' : 'Place Order'}
                     </Button>
                   </DialogFooter>
                 </DialogContent>

@@ -11,6 +11,11 @@ export interface CartItem {
   quantity: number;
 }
 
+export type OrderResult = 
+  | { success: true; orderId: string }
+  | { success: false; error: any }
+  | false;
+
 export const useCart = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -177,11 +182,12 @@ export const useCart = () => {
     }
   };
 
-  // Update cart item quantity
+  // Update cart item quantity without refreshing the page
   const updateCartItemQuantity = async (itemId: string, newQuantity: number) => {
     if (!user) return false;
 
     try {
+      // If quantity is 0 or less, remove the item
       if (newQuantity <= 0) {
         return await removeFromCart(itemId);
       }
@@ -194,13 +200,13 @@ export const useCart = () => {
 
       if (error) throw error;
 
-      toast({
-        title: 'Cart updated',
-        description: 'The quantity has been updated.',
-      });
+      // Update local state to avoid page refresh
+      setCartItems(prevItems => 
+        prevItems.map(item => 
+          item.id === itemId ? { ...item, quantity: newQuantity } : item
+        )
+      );
 
-      // Refresh cart to get updated data
-      await fetchCartItems();
       return true;
     } catch (error) {
       console.error('Error updating cart:', error);
@@ -226,13 +232,14 @@ export const useCart = () => {
 
       if (error) throw error;
 
+      // Update local state
+      setCartItems(cartItems.filter(item => item.id !== itemId));
+      
       toast({
         title: 'Item removed',
         description: 'The item has been removed from your cart.',
       });
 
-      // Update local state
-      setCartItems(cartItems.filter(item => item.id !== itemId));
       return true;
     } catch (error) {
       console.error('Error removing from cart:', error);
@@ -257,13 +264,14 @@ export const useCart = () => {
 
       if (error) throw error;
 
+      // Update local state
+      setCartItems([]);
+      
       toast({
         title: 'Cart cleared',
         description: 'All items have been removed from your cart.',
       });
 
-      // Update local state
-      setCartItems([]);
       return true;
     } catch (error) {
       console.error('Error clearing cart:', error);
@@ -277,8 +285,9 @@ export const useCart = () => {
   };
 
   // Place order with delivery address
-  const placeOrder = async (deliveryAddress: string) => {
+  const placeOrder = async (deliveryAddress: string): Promise<OrderResult> => {
     if (!user) return false;
+    
     if (cartItems.length === 0) {
       toast({
         title: 'Empty cart',
