@@ -41,12 +41,14 @@ export const useProductManagement = () => {
 
   const updateProductAvailability = async (productId: string, availability: 'available' | 'unavailable') => {
     try {
-      // Use a custom type to avoid TypeScript errors with the availability field
+      // Toggle the availability to the opposite value
+      const newAvailability = availability === 'available' ? 'unavailable' : 'available';
+      
+      console.log(`Updating product ${productId} availability to ${newAvailability}`);
+      
       const { error } = await supabase
         .from('products')
-        .update({ 
-          availability: availability 
-        } as any)
+        .update({ availability: newAvailability })
         .eq('id', productId);
 
       if (error) {
@@ -61,7 +63,7 @@ export const useProductManagement = () => {
 
       toast({
         title: 'Product updated',
-        description: `Product is now ${availability}.`,
+        description: `Product is now ${newAvailability}.`,
       });
       return true;
     } catch (error) {

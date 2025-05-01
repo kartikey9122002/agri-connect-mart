@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { MoreVertical, Trash, Eye, EyeOff, Tags } from 'lucide-react';
+import { MoreVertical, Trash, Eye, EyeOff, Tags, MessageSquare } from 'lucide-react';
 
 interface ProductActionMenuProps {
   productId: string;
@@ -45,7 +45,7 @@ const ProductActionMenu = ({
             View Receipt
           </DropdownMenuItem>
           <DropdownMenuItem onClick={onViewInteractions}>
-            <Eye className="mr-2 h-4 w-4" />
+            <MessageSquare className="mr-2 h-4 w-4" />
             Buyer Interactions
           </DropdownMenuItem>
           <DropdownMenuItem onClick={onToggleAvailability}>

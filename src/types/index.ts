@@ -1,3 +1,4 @@
+
 export type UserRole = "seller" | "buyer" | "admin";
 
 export interface User {
@@ -26,6 +27,7 @@ export interface Product {
 export interface Order {
   id: string;
   buyerId: string;
+  buyerName?: string;
   products: {
     productId: string;
     productName: string;
@@ -93,4 +95,5 @@ export interface ProductReceipt {
   buyerId: string;
   buyerName: string;
   createdAt: string;
+  deliveryAddress?: string;
 }

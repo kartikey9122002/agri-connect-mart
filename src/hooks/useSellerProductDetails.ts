@@ -13,46 +13,70 @@ export const useSellerProductDetails = (sellerId: string | undefined) => {
   const [isLoadingSchemes, setIsLoadingSchemes] = useState(false);
   const { toast } = useToast();
 
-  // This is a mock function since buyer interactions would require custom DB table
   const fetchBuyerInteractions = async (productId: string) => {
     setIsLoadingInteractions(true);
     
     try {
-      // In a real implementation, we would fetch from a buyer_interactions table
-      // For now, return mock data
       console.log(`Fetching buyer interactions for product ${productId}`);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Get all chat threads for this product
+      const { data: threadsData, error: threadsError } = await supabase
+        .from('chat_threads')
+        .select('*')
+        .eq('product_id', productId)
+        .eq('seller_id', sellerId);
+        
+      if (threadsError) throw threadsError;
       
-      // Mock data
-      const mockInteractions: BuyerInteraction[] = [
-        {
-          id: '1',
-          buyerId: 'buyer123',
-          buyerName: 'Rahul Sharma',
-          productId,
-          type: 'inquiry',
-          content: 'Is this product available for delivery to Mumbai?',
-          createdAt: new Date(Date.now() - 86400000).toISOString() // 1 day ago
-        },
-        {
-          id: '2',
-          buyerId: 'buyer456',
-          buyerName: 'Priya Singh',
-          productId,
-          type: 'review',
-          content: 'Excellent quality product! Highly recommended for other farmers.',
-          createdAt: new Date(Date.now() - 172800000).toISOString() // 2 days ago
-        }
-      ];
+      let interactions: BuyerInteraction[] = [];
+      
+      if (threadsData && threadsData.length > 0) {
+        // For each thread, get the first message as an interaction summary
+        const interactionPromises = threadsData.map(async (thread) => {
+          // Get first message in thread
+          const { data: messageData, error: messageError } = await supabase
+            .from('chat_messages')
+            .select('*')
+            .eq('thread_id', thread.id)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .single();
+            
+          if (messageError && messageError.code !== 'PGRST116') {
+            console.error('Error fetching message:', messageError);
+            return null;
+          }
+          
+          if (!messageData) return null;
+          
+          // Get buyer name
+          const { data: buyerData } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', thread.buyer_id)
+            .single();
+            
+          return {
+            id: messageData.id,
+            buyerId: thread.buyer_id,
+            buyerName: buyerData?.full_name || 'Unknown Buyer',
+            productId: thread.product_id || '',
+            type: 'message',
+            content: messageData.content,
+            createdAt: messageData.created_at
+          } as BuyerInteraction;
+        });
+        
+        const interactionResults = await Promise.all(interactionPromises);
+        interactions = interactionResults.filter(Boolean) as BuyerInteraction[];
+      }
       
       setBuyerInteractions(prev => ({
         ...prev,
-        [productId]: mockInteractions
+        [productId]: interactions
       }));
       
-      return mockInteractions;
+      return interactions;
     } catch (error) {
       console.error('Error fetching buyer interactions:', error);
       toast({
@@ -66,49 +90,71 @@ export const useSellerProductDetails = (sellerId: string | undefined) => {
     }
   };
 
-  // This is a mock function since we don't have an order_items / receipts table setup
   const fetchProductReceipts = async (productId: string) => {
     setIsLoadingReceipts(true);
     
     try {
-      // In a real implementation, we would join orders and order_items tables
       console.log(`Fetching receipts for product ${productId}`);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // First get the order_items that contain this product
+      const { data: orderItemsData, error: orderItemsError } = await supabase
+        .from('order_items')
+        .select('*')
+        .eq('product_id', productId);
+        
+      if (orderItemsError) throw orderItemsError;
       
-      // Mock data
-      const mockReceipts: ProductReceipt[] = [
-        {
-          id: '1',
-          productId,
-          productName: 'Product Name',
-          orderId: 'order123',
-          quantity: 5,
-          totalPrice: 750,
-          buyerId: 'buyer123',
-          buyerName: 'Rahul Sharma',
-          createdAt: new Date(Date.now() - 86400000).toISOString() // 1 day ago
-        },
-        {
-          id: '2',
-          productId,
-          productName: 'Product Name',
-          orderId: 'order456',
-          quantity: 3,
-          totalPrice: 450,
-          buyerId: 'buyer456',
-          buyerName: 'Priya Singh',
-          createdAt: new Date(Date.now() - 259200000).toISOString() // 3 days ago
+      if (!orderItemsData || orderItemsData.length === 0) {
+        setProductReceipts(prev => ({
+          ...prev,
+          [productId]: []
+        }));
+        return [];
+      }
+      
+      // Get the full order details for each order item
+      const receiptPromises = orderItemsData.map(async (item) => {
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('id', item.order_id)
+          .single();
+          
+        if (orderError) {
+          console.error('Error fetching order:', orderError);
+          return null;
         }
-      ];
+        
+        // Get buyer name
+        const { data: buyerData } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', orderData.buyer_id)
+          .single();
+          
+        return {
+          id: item.id,
+          productId: item.product_id || '',
+          productName: item.product_name,
+          orderId: item.order_id,
+          quantity: item.quantity,
+          totalPrice: item.price * item.quantity,
+          buyerId: orderData.buyer_id,
+          buyerName: buyerData?.full_name || 'Unknown Buyer',
+          createdAt: orderData.created_at,
+          deliveryAddress: orderData.delivery_address
+        } as ProductReceipt;
+      });
+      
+      const receiptResults = await Promise.all(receiptPromises);
+      const receipts = receiptResults.filter(Boolean) as ProductReceipt[];
       
       setProductReceipts(prev => ({
         ...prev,
-        [productId]: mockReceipts
+        [productId]: receipts
       }));
       
-      return mockReceipts;
+      return receipts;
     } catch (error) {
       console.error('Error fetching product receipts:', error);
       toast({
