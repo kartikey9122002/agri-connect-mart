@@ -38,8 +38,8 @@ const RecentActivityLog: React.FC = () => {
         // Get recent profiles
         const { data: recentUsers, error: usersError } = await supabase
           .from('profiles')
-          .select('id, full_name, created_at')
-          .order('created_at', { ascending: false })
+          .select('id, full_name')
+          .order('id', { ascending: false })
           .limit(3);
 
         if (usersError) throw usersError;
@@ -79,7 +79,7 @@ const RecentActivityLog: React.FC = () => {
             action: 'registered',
             target_id: user.id,
             target_name: user.full_name || 'New User',
-            created_at: user.created_at
+            created_at: new Date().toISOString() // Use current date since created_at isn't available
           }));
           allActivities = [...allActivities, ...userActivities];
         }

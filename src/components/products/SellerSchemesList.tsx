@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
-// Define a simple GovScheme type to avoid circular references
+// Define a simple GovScheme type without circular references
 interface SimpleGovScheme {
   id: string;
   title: string;
@@ -42,7 +42,6 @@ const SellerSchemesList = ({ schemes = [], isLoading: initialLoading = false }: 
         const { data, error } = await supabase
           .from('schemes')
           .select('*')
-          .eq('status', 'approved')
           .order('created_at', { ascending: false })
           .limit(3);
         

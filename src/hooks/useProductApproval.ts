@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -51,7 +52,7 @@ export const useProductApproval = () => {
             sellerId: item.seller_id,
             sellerName: profileData?.full_name || 'Unknown Seller',
             status: item.status,
-            availability: item.availability || 'available', // Add this line
+            availability: item.availability || 'available',
             createdAt: item.created_at,
             updatedAt: item.updated_at
           };

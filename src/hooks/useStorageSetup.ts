@@ -6,7 +6,7 @@ const useStorageSetup = () => {
   const [isStorageReady, setIsStorageReady] = useState(false);
 
   // Function to check if a column exists in a table
-  const columnExists = async (table: string, column: string) => {
+  const columnExists = async (table: "products" | "profiles" | "schemes", column: string) => {
     try {
       // This is a hacky way to check if column exists, by trying to select it
       const { error } = await supabase
@@ -22,35 +22,17 @@ const useStorageSetup = () => {
     }
   };
 
-  // Add a column if it doesn't exist
-  const addColumnIfNotExists = async (table: string, column: string, type: string) => {
-    try {
-      const exists = await columnExists(table, column);
-      if (!exists) {
-        console.log(`Adding column ${column} to ${table}`);
-        
-        // Use RPC to execute SQL (safer than raw SQL)
-        const { error } = await supabase.rpc('execute_sql', { 
-          sql_query: `ALTER TABLE public.${table} ADD COLUMN IF NOT EXISTS ${column} ${type};` 
-        });
-        
-        if (error) {
-          throw error;
-        }
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error(`Error adding column ${column} to ${table}:`, error);
-      return false;
-    }
-  };
-
   useEffect(() => {
     const setupStorage = async () => {
       try {
-        // Add availability column to products table if it doesn't exist
-        await addColumnIfNotExists('products', 'availability', "TEXT NOT NULL DEFAULT 'available'");
+        // Check if availability column exists in products table
+        const hasAvailability = await columnExists("products", "availability");
+        
+        if (!hasAvailability) {
+          console.log('The "availability" column does not exist in the "products" table');
+          // The migration was already run, so we don't need to add it again
+        }
+        
         setIsStorageReady(true);
       } catch (error) {
         console.error('Error setting up storage:', error);

@@ -84,14 +84,14 @@ const PricePredictionCard: React.FC<PricePredictionCardProps> = ({ products = []
             </div>
             
             {predictions.map((prediction, index) => (
-              <div key={index} className="flex justify-between items-center p-2 border-b border-gray-100">
+              <div key={index} className="grid grid-cols-3 items-center p-2 border-b border-gray-100">
                 <span className="text-sm font-medium truncate max-w-[150px]">
                   {prediction.productName}
                 </span>
-                <span className="text-sm font-bold text-center w-1/3">
+                <span className="text-sm font-bold text-center">
                   ₹{prediction.currentPrice.toFixed(2)}
                 </span>
-                <div className="flex items-center justify-end w-1/3">
+                <div className="flex items-center justify-end">
                   <span 
                     className={`text-xs ${
                       prediction.trend === 'up' 

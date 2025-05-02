@@ -191,6 +191,7 @@ export type Database = {
       }
       products: {
         Row: {
+          availability: string | null
           category: string
           created_at: string
           description: string | null
@@ -203,6 +204,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          availability?: string | null
           category: string
           created_at?: string
           description?: string | null
@@ -215,6 +217,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          availability?: string | null
           category?: string
           created_at?: string
           description?: string | null
@@ -296,7 +299,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_product_availability: {
+        Args: { product_id: string; new_availability: string }
+        Returns: undefined
+      }
     }
     Enums: {
       user_role: "buyer" | "seller" | "admin"
