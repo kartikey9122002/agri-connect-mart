@@ -3,18 +3,30 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
-import { GovScheme } from '@/types';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
+// Define a simple GovScheme type to avoid circular references
+interface SimpleGovScheme {
+  id: string;
+  title: string;
+  description: string;
+  eligibility: string;
+  benefits: string;
+  applicationUrl: string;
+  category: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface SellerSchemesListProps {
-  schemes?: GovScheme[];
+  schemes?: SimpleGovScheme[];
   isLoading?: boolean;
 }
 
 const SellerSchemesList = ({ schemes = [], isLoading: initialLoading = false }: SellerSchemesListProps) => {
-  const [displayedSchemes, setDisplayedSchemes] = useState<GovScheme[]>(schemes.slice(0, 3));
+  const [displayedSchemes, setDisplayedSchemes] = useState<SimpleGovScheme[]>(schemes);
   const [isLoading, setIsLoading] = useState(initialLoading);
   const { toast } = useToast();
 
@@ -39,16 +51,16 @@ const SellerSchemesList = ({ schemes = [], isLoading: initialLoading = false }: 
         }
         
         if (data) {
-          const formattedSchemes: GovScheme[] = data.map(scheme => ({
+          const formattedSchemes: SimpleGovScheme[] = data.map(scheme => ({
             id: scheme.id,
-            title: scheme.title,
-            description: scheme.description,
-            eligibility: scheme.eligibility,
-            benefits: scheme.benefits,
-            applicationUrl: scheme.application_url,
-            category: scheme.category,
-            createdAt: scheme.created_at,
-            updatedAt: scheme.updated_at
+            title: scheme.title || '',
+            description: scheme.description || '',
+            eligibility: scheme.eligibility || '',
+            benefits: scheme.benefits || '',
+            applicationUrl: scheme.application_url || '',
+            category: scheme.category || '',
+            createdAt: scheme.created_at || '',
+            updatedAt: scheme.updated_at || ''
           }));
           setDisplayedSchemes(formattedSchemes);
         }

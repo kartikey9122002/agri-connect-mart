@@ -39,18 +39,20 @@ export const useProductManagement = () => {
     }
   };
 
-  const updateProductAvailability = async (productId: string, availability: 'available' | 'unavailable') => {
+  const updateProductAvailability = async (productId: string, currentAvailability: string) => {
     setIsUpdating(true);
     try {
       // Toggle the availability to the opposite value
-      const newAvailability = availability === 'available' ? 'unavailable' : 'available';
+      const newAvailability = currentAvailability === 'available' ? 'unavailable' : 'available';
       
       console.log(`Updating product ${productId} availability to ${newAvailability}`);
       
+      // Use a raw SQL update to handle the availability field
       const { error } = await supabase
-        .from('products')
-        .update({ availability: newAvailability })
-        .eq('id', productId);
+        .rpc('update_product_availability', {
+          product_id: productId,
+          new_availability: newAvailability
+        });
 
       if (error) {
         console.error('Error updating product availability:', error);

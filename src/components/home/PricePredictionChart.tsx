@@ -50,57 +50,66 @@ const PricePredictionChart = () => {
   };
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis 
-          dataKey="date" 
-          tick={{ fontSize: 10 }} 
-          tickFormatter={(value, index) => index % 5 === 0 ? value : ''}
-        />
-        <YAxis 
-          label={{ value: 'Price (₹)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }} 
-          tick={{ fontSize: 10 }}
-        />
-        <Tooltip 
-          formatter={(value, name) => [`₹${value}`, name]} 
-          labelFormatter={(label) => `Day: ${label}`}
-        />
-        <Legend wrapperStyle={{ fontSize: '10px' }} />
-        <Line 
-          type="monotone" 
-          dataKey="Wheat" 
-          stroke={colors.Wheat} 
-          strokeWidth={2} 
-          dot={false}
-          activeDot={{ r: 5 }}
-        />
-        <Line 
-          type="monotone" 
-          dataKey="Rice" 
-          stroke={colors.Rice} 
-          strokeWidth={2} 
-          dot={false}
-          activeDot={{ r: 5 }}
-        />
-        <Line 
-          type="monotone" 
-          dataKey="Tomato" 
-          stroke={colors.Tomato} 
-          strokeWidth={2} 
-          dot={false}
-          activeDot={{ r: 5 }}
-        />
-        <Line 
-          type="monotone" 
-          dataKey="Potato" 
-          stroke={colors.Potato} 
-          strokeWidth={2} 
-          dot={false}
-          activeDot={{ r: 5 }}
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <div className="bg-white p-4 rounded-lg shadow">
+      <h3 className="text-xl font-bold mb-4 flex items-center">
+        <span>Agricultural Price Predictions</span>
+      </h3>
+      <p className="text-gray-600 mb-4">Forecast of market prices for major crops over the next 30 days</p>
+      
+      <div className="h-96">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="date" 
+              tick={{ fontSize: 10 }} 
+              tickFormatter={(value, index) => index % 5 === 0 ? value : ''}
+            />
+            <YAxis 
+              label={{ value: 'Price (₹)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }} 
+              tick={{ fontSize: 10 }}
+            />
+            <Tooltip 
+              formatter={(value, name) => [`₹${value}`, name]} 
+              labelFormatter={(label) => `Day: ${label}`}
+            />
+            <Legend wrapperStyle={{ fontSize: '10px' }} />
+            <Line 
+              type="monotone" 
+              dataKey="Wheat" 
+              stroke={colors.Wheat} 
+              strokeWidth={2} 
+              dot={false}
+              activeDot={{ r: 5 }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="Rice" 
+              stroke={colors.Rice} 
+              strokeWidth={2} 
+              dot={false}
+              activeDot={{ r: 5 }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="Tomato" 
+              stroke={colors.Tomato} 
+              strokeWidth={2} 
+              dot={false}
+              activeDot={{ r: 5 }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="Potato" 
+              stroke={colors.Potato} 
+              strokeWidth={2} 
+              dot={false}
+              activeDot={{ r: 5 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 };
 

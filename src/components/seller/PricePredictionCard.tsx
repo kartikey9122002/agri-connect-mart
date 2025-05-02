@@ -21,13 +21,14 @@ const PricePredictionCard: React.FC<PricePredictionCardProps> = ({ products = []
   const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
-    if (products.length === 0) return;
-    
     const fetchPricePredictions = async () => {
       setIsLoading(true);
       try {
         // Get unique product categories for this seller's products
-        const categories = [...new Set(products.map(p => p.category))];
+        if (!products || products.length === 0) {
+          setPredictions([]);
+          return;
+        }
         
         // In a real app, this would fetch from a real price prediction API
         // For now, we simulate price predictions for the products this seller has
@@ -46,6 +47,7 @@ const PricePredictionCard: React.FC<PricePredictionCardProps> = ({ products = []
         setPredictions(mockPredictions);
       } catch (error) {
         console.error('Error fetching price predictions:', error);
+        setPredictions([]);
       } finally {
         setIsLoading(false);
       }
@@ -86,10 +88,10 @@ const PricePredictionCard: React.FC<PricePredictionCardProps> = ({ products = []
                 <span className="text-sm font-medium truncate max-w-[150px]">
                   {prediction.productName}
                 </span>
-                <span className="text-sm font-bold">
-                  ₹{prediction.currentPrice}
+                <span className="text-sm font-bold text-center w-1/3">
+                  ₹{prediction.currentPrice.toFixed(2)}
                 </span>
-                <div className="flex items-center">
+                <div className="flex items-center justify-end w-1/3">
                   <span 
                     className={`text-xs ${
                       prediction.trend === 'up' 

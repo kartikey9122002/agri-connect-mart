@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
@@ -22,6 +22,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { cartItems } = useCart();
   
@@ -63,6 +64,22 @@ const Header = () => {
     }
   };
 
+  // Check if current page is a seller related page
+  const isSellerPage = () => {
+    return location.pathname.includes('/seller');
+  };
+
+  // Only show cart for buyers
+  const showCart = () => {
+    if (!user) return false;
+    if (user.role !== 'buyer') return false;
+    
+    // Don't show cart on seller pages
+    if (isSellerPage()) return false;
+    
+    return true;
+  };
+
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3">
@@ -96,16 +113,19 @@ const Header = () => {
           <div className="hidden md:flex items-center gap-4">
             {user ? (
               <>
-                <Link to="/cart" className="relative">
-                  <Button variant="ghost" size="sm" className="text-gray-600">
-                    <ShoppingCart className="h-5 w-5" />
-                    {cartItems.length > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-agrigreen-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                        {cartItems.length}
-                      </span>
-                    )}
-                  </Button>
-                </Link>
+                {/* Only show cart for buyers and not on seller pages */}
+                {showCart() && (
+                  <Link to="/cart" className="relative">
+                    <Button variant="ghost" size="sm" className="text-gray-600">
+                      <ShoppingCart className="h-5 w-5" />
+                      {cartItems.length > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-agrigreen-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                          {cartItems.length}
+                        </span>
+                      )}
+                    </Button>
+                  </Link>
+                )}
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -167,7 +187,7 @@ const Header = () => {
 
           {/* Mobile Toggle */}
           <div className="md:hidden flex items-center gap-2">
-            {user && (
+            {showCart() && (
               <Link to="/cart" className="relative mr-2">
                 <Button variant="ghost" size="sm" className="text-gray-600 p-1">
                   <ShoppingCart className="h-5 w-5" />

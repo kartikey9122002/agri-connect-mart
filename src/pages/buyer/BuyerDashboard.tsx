@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ShoppingBag, MessageCircle, History, Receipt, TrendingUp } from 'lucide-react';
 import OrderTracker from '@/components/buyer/OrderTracker';
 import PaymentReceipt from '@/components/buyer/PaymentReceipt';
-import VoiceCommandButton from '@/components/buyer/VoiceCommandButton';
+import SeasonalPriceTrendsCard from '@/components/buyer/SeasonalPriceTrendsCard';
 import { Product, ProductReceipt } from '@/types';
 
 interface Order {
@@ -122,7 +122,7 @@ const BuyerDashboard = () => {
               sellerId: product.seller_id,
               sellerName: profileData?.full_name || 'Unknown Seller',
               status: product.status,
-              availability: product.availability || 'available',
+              availability: 'available', // Default value
               createdAt: product.created_at,
               updatedAt: product.updated_at
             } as Product;
@@ -165,27 +165,6 @@ const BuyerDashboard = () => {
     setReceipts(mockReceipts);
   };
 
-  const handleVoiceCommand = (command: string) => {
-    toast({
-      title: "Processing voice command",
-      description: `"${command}"`,
-    });
-
-    // Simple command processing logic
-    if (command.includes('search')) {
-      const searchTerm = command.replace('search for', '').trim();
-      window.location.href = `/products?search=${encodeURIComponent(searchTerm)}`;
-    } else if (command.includes('chat')) {
-      window.location.href = `/buyer/messages`;
-    } else if (command.includes('filter')) {
-      window.location.href = `/products?sort=price_asc`;
-    } else {
-      toast({
-        description: "Command not recognized. Please try again.",
-      });
-    }
-  };
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -195,7 +174,6 @@ const BuyerDashboard = () => {
         </div>
         
         <div className="flex items-center gap-2 mt-2 md:mt-0">
-          <VoiceCommandButton onCommandDetected={handleVoiceCommand} />
           <Link to="/products">
             <Button className="bg-agrigreen-600 hover:bg-agrigreen-700">
               <ShoppingBag className="mr-2 h-4 w-4" /> Shop Products
@@ -253,26 +231,7 @@ const BuyerDashboard = () => {
                 </Card>
               )}
               
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <TrendingUp className="mr-2 h-5 w-5 text-agrigreen-600" />
-                    Seasonal Price Trends
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center bg-gray-50 p-6 rounded-md">
-                    <p className="text-gray-600">
-                      Track seasonal price trends to make informed purchases.
-                    </p>
-                    <Link to="/products" className="mt-4 inline-block">
-                      <Button variant="outline">
-                        View Price Trends
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+              <SeasonalPriceTrendsCard />
             </div>
             
             {orders.length > 0 && (

@@ -1,4 +1,5 @@
 
+// This component is being kept but not used in the Buyer Dashboard anymore
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
@@ -48,35 +49,6 @@ const VoiceCommandButton: React.FC<VoiceCommandButtonProps> = ({ onCommandDetect
       onCommandDetected(randomCommand);
       setIsListening(false);
     }, 2000);
-
-    /* 
-    // Real implementation would use the Web Speech API like this:
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    
-    recognition.lang = 'en-US';
-    recognition.interimResults = false;
-    
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      onCommandDetected(transcript);
-      setIsListening(false);
-      setIsLoading(false);
-    };
-    
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error', event.error);
-      toast({
-        title: 'Recognition Error',
-        description: `Error: ${event.error}`,
-        variant: 'destructive',
-      });
-      setIsListening(false);
-      setIsLoading(false);
-    };
-    
-    recognition.start();
-    */
   };
 
   const stopListening = () => {
