@@ -9,27 +9,15 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  // Guard against undefined product
-  if (!product) {
-    return null;
-  }
-
-  // Ensure images array is not undefined
-  const images = product.images || [];
-  const availability = product.availability || 'available';
-
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden border border-agrigreen-100 hover:shadow-lg transition-shadow">
       <div className="relative h-48 overflow-hidden">
         <img
-          src={images[0] || 'https://via.placeholder.com/300x200?text=No+Image'}
+          src={product.images[0]}
           alt={product.name}
           className="w-full h-full object-cover"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = "https://via.placeholder.com/300x200?text=No+Image";
-          }}
         />
-        {availability === 'unavailable' && (
+        {product.status === 'unavailable' && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <Badge className="bg-red-500 text-lg">Unavailable</Badge>
           </div>

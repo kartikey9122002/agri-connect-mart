@@ -23,7 +23,6 @@ export interface Product {
   availability: 'available' | 'unavailable';
   createdAt: string;
   updatedAt: string;
-  rowNumber?: number;
 }
 
 export interface Order {

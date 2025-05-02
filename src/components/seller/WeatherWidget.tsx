@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Thermometer, CloudSun, MapPin } from 'lucide-react';
+import { thermometer, cloudSun, mapPin } from 'lucide-react';
 import { WeatherData } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -92,7 +92,7 @@ const WeatherWidget: React.FC = () => {
     <Card className="overflow-hidden">
       <CardHeader className="bg-gradient-to-r from-blue-500 to-cyan-400">
         <CardTitle className="text-white flex items-center gap-2">
-          <CloudSun className="h-5 w-5" />
+          <cloudSun className="h-5 w-5" />
           Weather Forecast
         </CardTitle>
       </CardHeader>
@@ -107,7 +107,7 @@ const WeatherWidget: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-1 text-gray-500 mb-1">
-                    <MapPin className="h-4 w-4" />
+                    <mapPin className="h-4 w-4" />
                     <span className="text-sm">{weatherData.location}</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -116,7 +116,7 @@ const WeatherWidget: React.FC = () => {
                   </div>
                 </div>
                 <div className="bg-blue-50 p-3 rounded-full">
-                  <CloudSun className="h-10 w-10 text-blue-500" />
+                  <cloudSun className="h-10 w-10 text-blue-500" />
                 </div>
               </div>
             </div>
@@ -128,7 +128,7 @@ const WeatherWidget: React.FC = () => {
                   <div key={index} className="text-center p-2 bg-gray-50 rounded-md">
                     <div className="text-xs text-gray-500">{day.date}</div>
                     <div className="my-1">
-                      <Thermometer className="h-4 w-4 mx-auto text-blue-400" />
+                      <thermometer className="h-4 w-4 mx-auto text-blue-400" />
                     </div>
                     <div className="font-medium">{day.temperature}°C</div>
                     <div className="text-xs text-gray-500 truncate">{day.condition}</div>
