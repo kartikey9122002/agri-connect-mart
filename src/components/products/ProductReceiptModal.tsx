@@ -25,7 +25,7 @@ const ProductReceiptModal: React.FC<ProductReceiptModalProps> = ({
   isOpen,
   onClose,
   productName,
-  receipts,
+  receipts = [],
   isLoading,
 }) => {
   const [selectedTab, setSelectedTab] = useState<'all' | 'recent'>('all');

@@ -56,8 +56,20 @@ const SellerDashboard = () => {
           throw error;
         }
 
-        const productsWithRowNumbers = (data || []).map((product: Product, index: number) => ({
+        const productsWithRowNumbers = (data || []).map((product: any, index: number) => ({
           ...product,
+          id: product.id,
+          name: product.name,
+          description: product.description || '',
+          price: product.price,
+          images: product.images || [],
+          category: product.category,
+          sellerId: product.seller_id,
+          sellerName: user.name || 'Seller',
+          status: product.status,
+          availability: product.availability || 'available',
+          createdAt: product.created_at,
+          updatedAt: product.updated_at,
           rowNumber: index + 1,
         }));
 
@@ -108,17 +120,29 @@ const SellerDashboard = () => {
     setInteractionsModalOpen(true);
 
     try {
+      // For now, we'll use chat_messages as a proxy for buyer interactions
       const { data, error } = await supabase
-        .from('buyer_interactions')
+        .from('chat_messages')
         .select('*')
-        .eq('product_id', productId)
+        .eq('thread_id', productId)
         .order('created_at', { ascending: false });
 
       if (error) {
         throw error;
       }
 
-      setProductInteractions(data || []);
+      // Transform data to match BuyerInteraction type
+      const formattedInteractions: BuyerInteraction[] = (data || []).map((item: any) => ({
+        id: item.id,
+        buyerId: item.sender_id,
+        buyerName: 'Buyer', // We would normally fetch this
+        productId: productId,
+        type: 'message',
+        content: item.content,
+        createdAt: item.created_at
+      }));
+
+      setProductInteractions(formattedInteractions);
     } catch (error: any) {
       console.error('Error fetching buyer interactions:', error);
       toast({
@@ -174,8 +198,11 @@ const SellerDashboard = () => {
           />
         </div>
         <div className="lg:col-span-1 space-y-6">
-          <PricePredictionCard />
-          <SellerSchemesList />
+          <PricePredictionCard products={products} />
+          <SellerSchemesList 
+            schemes={[]} 
+            isLoading={false} 
+          />
         </div>
       </div>
 
@@ -183,8 +210,9 @@ const SellerDashboard = () => {
       <ProductReceiptModal
         isOpen={receiptModalOpen}
         onClose={() => setReceiptModalOpen(false)}
-        productId={selectedProductId || ''}
         productName={selectedProductName || ''}
+        receipts={[]}
+        isLoading={false}
       />
       
       <BuyerInteractionsModal

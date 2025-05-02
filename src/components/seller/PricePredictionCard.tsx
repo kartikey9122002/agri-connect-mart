@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Product } from '@/types';
 
 interface PricePredictionCardProps {
-  products: Product[];
+  products?: Product[];
 }
 
-const PricePredictionCard: React.FC<PricePredictionCardProps> = ({ products }) => {
+const PricePredictionCard: React.FC<PricePredictionCardProps> = ({ products = [] }) => {
   return (
     <Card>
       <CardHeader>
@@ -34,6 +34,11 @@ const PricePredictionCard: React.FC<PricePredictionCardProps> = ({ products }) =
               </div>
             </div>
           ))}
+          {products.length === 0 && (
+            <div className="text-center py-4">
+              <p className="text-gray-500 text-sm">No products available for price prediction</p>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -11,7 +11,7 @@ interface SellerSchemesListProps {
   isLoading: boolean;
 }
 
-const SellerSchemesList = ({ schemes, isLoading }: SellerSchemesListProps) => {
+const SellerSchemesList = ({ schemes = [], isLoading }: SellerSchemesListProps) => {
   const displayedSchemes = schemes.slice(0, 3); // Show only top 3 schemes
 
   return (
