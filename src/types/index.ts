@@ -1,4 +1,3 @@
-
 export type UserRole = "seller" | "buyer" | "admin";
 
 export interface User {

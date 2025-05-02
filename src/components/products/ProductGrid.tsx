@@ -8,7 +8,7 @@ interface ProductGridProps {
   isLoading?: boolean;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ products, isLoading = false }) => {
+const ProductGrid: React.FC<ProductGridProps> = ({ products = [], isLoading = false }) => {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -27,7 +27,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, isLoading = false }
     );
   }
 
-  if (products.length === 0) {
+  if (!products || products.length === 0) {
     return (
       <div className="text-center py-12">
         <h3 className="text-lg font-medium text-gray-600">No products found</h3>

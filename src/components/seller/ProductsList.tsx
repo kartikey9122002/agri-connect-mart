@@ -15,8 +15,8 @@ interface ProductsListProps {
 }
 
 const ProductsList: React.FC<ProductsListProps> = ({
-  products,
-  isLoading,
+  products = [],
+  isLoading = false,
   onDeleteProduct,
   onToggleAvailability,
   onViewInteractions,
@@ -84,8 +84,8 @@ const ProductsList: React.FC<ProductsListProps> = ({
                     <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusBadgeClass(product.status)}`}>
                       {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
                     </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${getAvailabilityBadgeClass(product.availability)}`}>
-                      {product.availability.charAt(0).toUpperCase() + product.availability.slice(1)}
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${getAvailabilityBadgeClass(product.availability || 'available')}`}>
+                      {(product.availability || 'available').charAt(0).toUpperCase() + (product.availability || 'available').slice(1)}
                     </span>
                     <span className="text-xs text-gray-500">
                       Added on {new Date(product.createdAt).toLocaleDateString()}
@@ -98,7 +98,7 @@ const ProductsList: React.FC<ProductsListProps> = ({
                     productName={product.name}
                     isAvailable={product.availability === 'available'}
                     onDelete={() => onDeleteProduct(product.id)}
-                    onToggleAvailability={() => onToggleAvailability(product.id, product.availability)}
+                    onToggleAvailability={() => onToggleAvailability(product.id, product.availability || 'available')}
                     onViewInteractions={() => onViewInteractions(product.id, product.name)}
                     onViewReceipt={() => onViewReceipt(product.id, product.name)}
                   />

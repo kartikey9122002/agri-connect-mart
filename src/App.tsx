@@ -1,65 +1,86 @@
-
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
-import MainLayout from '@/components/layout/MainLayout';
-import HomePage from '@/pages/HomePage';
-import ProductsPage from '@/pages/ProductsPage';
-import SchemesPage from '@/pages/SchemesPage';
-import ProductDetail from '@/pages/buyer/ProductDetail';
-import LoginPage from '@/pages/LoginPage';
-import RegisterPage from '@/pages/RegisterPage';
-import NotFound from '@/pages/NotFound';
-import AdminDashboard from '@/pages/admin/AdminDashboard';
-import ProductApproval from '@/pages/admin/ProductApproval';
-import ManageUsers from '@/pages/admin/ManageUsers';
-import ViewOrders from '@/pages/admin/ViewOrders';
-import ManageSchemes from '@/pages/admin/ManageSchemes';
-import SellerDashboard from '@/pages/seller/SellerDashboard';
-import AddProduct from '@/pages/seller/AddProduct';
-import BuyerDashboard from '@/pages/buyer/BuyerDashboard';
-import CartPage from '@/pages/buyer/CartPage';
-import PaymentReceiptPage from '@/pages/buyer/PaymentReceiptPage';
-import BrowsingHistoryPage from '@/pages/buyer/BrowsingHistoryPage';
-import BuyerMessagesPage from '@/pages/buyer/BuyerMessagesPage';
-import SellerMessagesPage from '@/pages/seller/SellerMessagesPage';
 import { AuthProvider } from '@/contexts/AuthContext';
-import useStorageSetup from '@/hooks/useStorageSetup';
+
+import MainLayout from './components/layout/MainLayout';
+import HomePage from './pages/HomePage';
+import NotFound from './pages/NotFound';
+import ProductsPage from './pages/ProductsPage';
+import ProductDetailsPage from './pages/ProductDetailsPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import SellerDashboardPage from './pages/seller/SellerDashboardPage';
+import AddProductPage from './pages/seller/AddProductPage';
+import EditProductPage from './pages/seller/EditProductPage';
+import SchemesPage from './pages/SchemesPage';
+import SchemeDetailsPage from './pages/SchemeDetailsPage';
+import ProfilePage from './pages/ProfilePage';
+import BuyerOrdersPage from './pages/buyer/BuyerOrdersPage';
+import SellerOrdersPage from './pages/seller/SellerOrdersPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminProductsPage from './pages/admin/AdminProductsPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminSchemesPage from './pages/admin/AdminSchemesPage';
+import WeatherPage from './pages/WeatherPage';
+import PricePredictionPage from './pages/PricePredictionPage';
+import ContactPage from './pages/ContactPage';
+import AboutPage from './pages/AboutPage';
+import BuyerMessagesPage from './pages/buyer/BuyerMessagesPage';
+import SellerMessagesPage from './pages/seller/SellerMessagesPage';
+import InteractionsPage from './pages/seller/InteractionsPage';
+import ReceiptPage from './pages/seller/ReceiptPage';
+import BrowsingHistoryPage from './pages/buyer/BrowsingHistoryPage';
+
+const queryClient = new QueryClient();
 
 function App() {
-  // Initialize storage buckets and set up database columns
-  const { isStorageReady } = useStorageSetup();
-  
   return (
-    <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <MainLayout>
+        <BrowserRouter>
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/schemes" element={<SchemesPage />} />
-            <Route path="/products/:id" element={<ProductDetail />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/product-approval" element={<ProductApproval />} />
-            <Route path="/admin/manage-users" element={<ManageUsers />} />
-            <Route path="/admin/view-orders" element={<ViewOrders />} />
-            <Route path="/admin/manage-schemes" element={<ManageSchemes />} />
-            <Route path="/seller-dashboard" element={<SellerDashboard />} />
-            <Route path="/seller/add-product" element={<AddProduct />} />
-            <Route path="/seller/messages" element={<SellerMessagesPage />} />
-            <Route path="/buyer-dashboard" element={<BuyerDashboard />} />
-            <Route path="/cart" element={<CartPage />} />
-            <Route path="/buyer/receipt/:orderId" element={<PaymentReceiptPage />} />
-            <Route path="/buyer/history" element={<BrowsingHistoryPage />} />
-            <Route path="/buyer/messages" element={<BuyerMessagesPage />} />
-            <Route path="*" element={<NotFound />} />
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<HomePage />} />
+              <Route path="home" element={<HomePage />} />
+              <Route path="products" element={<ProductsPage />} />
+              <Route path="products/:productId" element={<ProductDetailsPage />} />
+              <Route path="login" element={<LoginPage />} />
+              <Route path="register" element={<RegisterPage />} />
+              <Route path="schemes" element={<SchemesPage />} />
+              <Route path="schemes/:schemeId" element={<SchemeDetailsPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+              <Route path="orders" element={<BuyerOrdersPage />} />
+              <Route path="messages" element={<BuyerMessagesPage />} />
+              <Route path="browsing-history" element={<BrowsingHistoryPage />} />
+              
+              {/* Seller Routes */}
+              <Route path="seller/dashboard" element={<SellerDashboardPage />} />
+              <Route path="seller/add-product" element={<AddProductPage />} />
+              <Route path="seller/edit-product/:productId" element={<EditProductPage />} />
+              <Route path="seller/orders" element={<SellerOrdersPage />} />
+              <Route path="seller/messages" element={<SellerMessagesPage />} />
+              <Route path="seller/interactions/:productId" element={<InteractionsPage />} />
+              <Route path="seller/receipt/:productId" element={<ReceiptPage />} />
+
+              {/* Admin Routes */}
+              <Route path="admin/dashboard" element={<AdminDashboardPage />} />
+              <Route path="admin/products" element={<AdminProductsPage />} />
+              <Route path="admin/users" element={<AdminUsersPage />} />
+              <Route path="admin/schemes" element={<AdminSchemesPage />} />
+
+              <Route path="weather" element={<WeatherPage />} />
+              <Route path="price-prediction" element={<PricePredictionPage />} />
+              <Route path="contact" element={<ContactPage />} />
+              <Route path="about" element={<AboutPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
           </Routes>
-        </MainLayout>
+        </BrowserRouter>
         <Toaster />
       </AuthProvider>
-    </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 
