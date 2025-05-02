@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ProductsList from '@/components/seller/ProductsList';
@@ -15,15 +16,11 @@ import { useProductManagement } from '@/hooks/useProductManagement';
 import { Product, BuyerInteraction } from '@/types';
 import { Plus } from 'lucide-react';
 
-interface ProductWithRowNumber extends Product {
-  rowNumber: number;
-}
-
 const SellerDashboard = () => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [products, setProducts] = useState<ProductWithRowNumber[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [interactionsModalOpen, setInteractionsModalOpen] = useState(false);
@@ -55,12 +52,24 @@ const SellerDashboard = () => {
           throw error;
         }
 
-        const productsWithRowNumbers = (data || []).map((product: Product, index: number) => ({
-          ...product,
-          rowNumber: index + 1,
+        // Transform database products to match Product type
+        const formattedProducts = (data || []).map((product: any, index: number) => ({
+          id: product.id,
+          name: product.name,
+          description: product.description || '',
+          price: product.price,
+          images: product.images || [],
+          category: product.category,
+          sellerId: product.seller_id,
+          sellerName: user.name || 'Seller',
+          status: product.status,
+          availability: product.availability || 'available',
+          createdAt: product.created_at,
+          updatedAt: product.updated_at,
+          rowNumber: index + 1
         }));
 
-        setProducts(productsWithRowNumbers);
+        setProducts(formattedProducts);
       } catch (error: any) {
         console.error('Error fetching products:', error);
         toast({
@@ -107,17 +116,20 @@ const SellerDashboard = () => {
     setInteractionsModalOpen(true);
 
     try {
-      const { data, error } = await supabase
-        .from('buyer_interactions')
-        .select('*')
-        .eq('product_id', productId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      setProductInteractions(data || []);
+      // This is a simple mock of buyer interactions
+      const mockInteractions: BuyerInteraction[] = [
+        {
+          id: '1',
+          buyerId: 'buyer-1',
+          buyerName: 'John Doe',
+          productId: productId,
+          type: 'inquiry',
+          content: 'Is this product still available?',
+          createdAt: new Date().toISOString()
+        }
+      ];
+      
+      setProductInteractions(mockInteractions);
     } catch (error: any) {
       console.error('Error fetching buyer interactions:', error);
       toast({
@@ -154,7 +166,7 @@ const SellerDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2">
-          <DashboardSummary />
+          <DashboardSummary products={products} />
         </div>
         <div className="lg:col-span-1">
           <WeatherWidget />

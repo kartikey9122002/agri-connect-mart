@@ -1,3 +1,4 @@
+
 export type UserRole = "seller" | "buyer" | "admin";
 
 export interface User {
@@ -22,6 +23,7 @@ export interface Product {
   availability: 'available' | 'unavailable';
   createdAt: string;
   updatedAt: string;
+  rowNumber?: number;
 }
 
 export interface Order {

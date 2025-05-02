@@ -4,10 +4,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Product } from '@/types';
 
 interface DashboardSummaryProps {
-  products: Product[];
+  products?: Product[];
 }
 
 const DashboardSummary: React.FC<DashboardSummaryProps> = ({ products = [] }) => {
+  // Count products by status
+  const liveProductsCount = products.filter(
+    p => p.status === 'approved' && p.availability === 'available'
+  ).length;
+  
+  const pendingApprovalCount = products.filter(
+    p => p.status === 'pending'
+  ).length;
+  
+  const rejectedCount = products.filter(
+    p => p.status === 'rejected'
+  ).length;
+
   return (
     <Card>
       <CardHeader>
@@ -21,21 +34,15 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({ products = [] }) =>
           </div>
           <div>
             <p className="text-sm text-gray-500">Live Products</p>
-            <p className="text-2xl font-bold">
-              {products.filter(p => p.status === 'approved' && p.availability === 'available').length}
-            </p>
+            <p className="text-2xl font-bold">{liveProductsCount}</p>
           </div>
           <div>
             <p className="text-sm text-gray-500">Pending Approval</p>
-            <p className="text-2xl font-bold">
-              {products.filter(p => p.status === 'pending').length}
-            </p>
+            <p className="text-2xl font-bold">{pendingApprovalCount}</p>
           </div>
           <div>
             <p className="text-sm text-gray-500">Rejected</p>
-            <p className="text-2xl font-bold">
-              {products.filter(p => p.status === 'rejected').length}
-            </p>
+            <p className="text-2xl font-bold">{rejectedCount}</p>
           </div>
         </div>
       </CardContent>
