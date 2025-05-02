@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Product } from '@/types';
 
 interface DashboardSummaryProps {
-  products: Product[];
+  products?: Product[];
 }
 
-const DashboardSummary: React.FC<DashboardSummaryProps> = ({ products }) => {
+const DashboardSummary: React.FC<DashboardSummaryProps> = ({ products = [] }) => {
   return (
     <Card>
       <CardHeader>

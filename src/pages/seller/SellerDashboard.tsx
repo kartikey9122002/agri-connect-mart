@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ProductsList from '@/components/seller/ProductsList';
@@ -154,7 +155,7 @@ const SellerDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2">
-          <DashboardSummary />
+          <DashboardSummary products={products} />
         </div>
         <div className="lg:col-span-1">
           <WeatherWidget />
@@ -182,15 +183,15 @@ const SellerDashboard = () => {
       <ProductReceiptModal
         isOpen={receiptModalOpen}
         onClose={() => setReceiptModalOpen(false)}
-        productId={selectedProductId}
-        productName={selectedProductName}
+        productId={selectedProductId || ''}
+        productName={selectedProductName || ''}
       />
       
       <BuyerInteractionsModal
         isOpen={interactionsModalOpen}
         onClose={() => setInteractionsModalOpen(false)}
-        productId={selectedProductId}
-        productName={selectedProductName}
+        productId={selectedProductId || ''}
+        productName={selectedProductName || ''}
         interactions={productInteractions}
         isLoading={loadingInteractions}
       />
