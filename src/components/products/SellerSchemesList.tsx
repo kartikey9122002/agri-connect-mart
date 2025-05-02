@@ -1,18 +1,71 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
 import { GovScheme } from '@/types';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 interface SellerSchemesListProps {
-  schemes: GovScheme[];
-  isLoading: boolean;
+  schemes?: GovScheme[];
+  isLoading?: boolean;
 }
 
-const SellerSchemesList = ({ schemes = [], isLoading }: SellerSchemesListProps) => {
-  const displayedSchemes = schemes.slice(0, 3); // Show only top 3 schemes
+const SellerSchemesList = ({ schemes = [], isLoading: initialLoading = false }: SellerSchemesListProps) => {
+  const [displayedSchemes, setDisplayedSchemes] = useState<GovScheme[]>(schemes.slice(0, 3));
+  const [isLoading, setIsLoading] = useState(initialLoading);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (schemes.length > 0) {
+      setDisplayedSchemes(schemes.slice(0, 3));
+      return;
+    }
+    
+    const fetchSchemes = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('schemes')
+          .select('*')
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false })
+          .limit(3);
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          const formattedSchemes: GovScheme[] = data.map(scheme => ({
+            id: scheme.id,
+            title: scheme.title,
+            description: scheme.description,
+            eligibility: scheme.eligibility,
+            benefits: scheme.benefits,
+            applicationUrl: scheme.application_url,
+            category: scheme.category,
+            createdAt: scheme.created_at,
+            updatedAt: scheme.updated_at
+          }));
+          setDisplayedSchemes(formattedSchemes);
+        }
+      } catch (error: any) {
+        console.error('Error fetching schemes:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load government schemes',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchSchemes();
+  }, [schemes, toast]);
 
   return (
     <Card>

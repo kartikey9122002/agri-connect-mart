@@ -1,10 +1,60 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ShoppingBag, Truck, Package, Award, Monitor } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Product } from '@/types';
+import ProductGrid from '@/components/products/ProductGrid';
+import PricePredictionChart from '@/components/home/PricePredictionChart';
 
 const HomePage = () => {
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  
+  useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      setIsLoadingProducts(true);
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('status', 'approved')
+          .eq('availability', 'available')
+          .order('created_at', { ascending: false })
+          .limit(4);
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          const formattedProducts: Product[] = data.map(product => ({
+            id: product.id,
+            name: product.name,
+            description: product.description || '',
+            price: product.price,
+            images: product.images || [],
+            category: product.category,
+            sellerId: product.seller_id,
+            sellerName: 'Farmer', // We would fetch this normally
+            status: product.status,
+            availability: product.availability || 'available',
+            createdAt: product.created_at,
+            updatedAt: product.updated_at
+          }));
+          setFeaturedProducts(formattedProducts);
+        }
+      } catch (error) {
+        console.error('Error fetching featured products:', error);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+    
+    fetchFeaturedProducts();
+  }, []);
+  
   return (
     <div>
       {/* Hero Section */}
@@ -71,7 +121,7 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Featured Products */}
+      {/* Featured Products - Updated to load products on initial render */}
       <div className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
@@ -80,20 +130,8 @@ const HomePage = () => {
               View all <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {/* We'll populate this with actual products later */}
-            {[...Array(4)].map((_, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden border border-agrigreen-100 hover:shadow-lg transition-shadow">
-                <div className="h-48 bg-gray-200 animate-pulse"></div>
-                <div className="p-4">
-                  <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                </div>
-              </div>
-            ))}
-          </div>
+          
+          <ProductGrid products={featuredProducts} isLoading={isLoadingProducts} />
         </div>
       </div>
 
@@ -133,7 +171,7 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Price Prediction CTA */}
+      {/* Price Prediction Section - Updated to show graph directly */}
       <div className="py-16 bg-gradient-to-r from-agrigreen-800 to-agrigreen-700 text-white">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center gap-8">
@@ -143,18 +181,12 @@ const HomePage = () => {
               <p className="text-xl mb-6 text-agrigreen-50">
                 Using advanced AI technology to predict future crop prices, helping farmers and buyers make informed decisions.
               </p>
-              <Button className="bg-agriorange-500 hover:bg-agriorange-600 text-white">
-                View Price Predictions
-              </Button>
             </div>
             <div className="md:w-1/2 relative">
-              <div className="bg-white rounded-lg shadow-xl overflow-hidden">
-                <div className="h-64 w-full bg-gray-100 flex items-center justify-center">
-                  <div className="w-full h-full p-4">
-                    <div className="h-full w-full bg-agriorange-50 rounded-md flex items-center justify-center">
-                      <p className="text-agrigreen-800 text-center">Price prediction graph will appear here</p>
-                    </div>
-                  </div>
+              <div className="bg-white rounded-lg shadow-xl overflow-hidden p-4">
+                <h3 className="text-agrigreen-800 font-semibold mb-2">Price Trends (Next 30 Days)</h3>
+                <div className="h-64 w-full">
+                  <PricePredictionChart />
                 </div>
               </div>
             </div>

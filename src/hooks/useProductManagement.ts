@@ -40,6 +40,7 @@ export const useProductManagement = () => {
   };
 
   const updateProductAvailability = async (productId: string, availability: 'available' | 'unavailable') => {
+    setIsUpdating(true);
     try {
       // Toggle the availability to the opposite value
       const newAvailability = availability === 'available' ? 'unavailable' : 'available';
@@ -74,6 +75,8 @@ export const useProductManagement = () => {
         variant: 'destructive',
       });
       return false;
+    } finally {
+      setIsUpdating(false);
     }
   };
 

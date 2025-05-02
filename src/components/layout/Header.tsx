@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,10 +25,6 @@ const Header = () => {
   const { toast } = useToast();
   const { cartItems } = useCart();
   
-  // We removed the useEffect hook that was trying to call fetchCartItems
-  // since that function doesn't exist in the useCart hook
-  // The cartItems are already being fetched in the useCart hook
-
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -79,7 +76,12 @@ const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
             <Link to="/" className="text-gray-600 hover:text-agrigreen-700">Home</Link>
-            <Link to="/products" className="text-gray-600 hover:text-agrigreen-700">Products</Link>
+            
+            {/* Only show Products link for logged-in buyers */}
+            {user && user.role === 'buyer' && (
+              <Link to="/products" className="text-gray-600 hover:text-agrigreen-700">Products</Link>
+            )}
+            
             <Link to="/schemes" className="text-gray-600 hover:text-agrigreen-700">Schemes</Link>
             
             {/* Show dashboard link if user is logged in */}
@@ -192,11 +194,16 @@ const Header = () => {
                   <Home className="h-5 w-5 mr-2" /> Home
                 </div>
               </Link>
-              <Link to="/products" className="px-4 py-2 hover:bg-gray-50" onClick={toggleMenu}>
-                <div className="flex items-center">
-                  <Package className="h-5 w-5 mr-2" /> Products
-                </div>
-              </Link>
+              
+              {/* Only show Products link for logged-in buyers in mobile menu */}
+              {user && user.role === 'buyer' && (
+                <Link to="/products" className="px-4 py-2 hover:bg-gray-50" onClick={toggleMenu}>
+                  <div className="flex items-center">
+                    <Package className="h-5 w-5 mr-2" /> Products
+                  </div>
+                </Link>
+              )}
+              
               <Link to="/schemes" className="px-4 py-2 hover:bg-gray-50" onClick={toggleMenu}>
                 <div className="flex items-center">
                   <FileText className="h-5 w-5 mr-2" /> Schemes
