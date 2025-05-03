@@ -68,7 +68,7 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle>Order Tracking</CardTitle>
           <Badge className={statusDetails.color}>
-            {orderStatus.replace(/-/g, ' ').toUpperCase()}
+            {orderStatus ? orderStatus.replace(/-/g, ' ').toUpperCase() : 'PROCESSING'}
           </Badge>
         </div>
       </CardHeader>

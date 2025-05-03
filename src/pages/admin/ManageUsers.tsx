@@ -1,230 +1,170 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Table, TableBody, TableCaption, TableCell, 
-  TableHead, TableHeader, TableRow 
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-
-interface UserWithProfile {
-  id: string;
-  email: string;
-  full_name: string;
-  role: string;
-  phone: string | null;
-  address: string | null;
-  is_blocked: boolean;
-}
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+import { User } from '@/types';
 
 const ManageUsers = () => {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const navigate = useNavigate();
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const [users, setUsers] = useState<UserWithProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [userToToggle, setUserToToggle] = useState<UserWithProfile | null>(null);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && (!isAuthenticated || user?.role !== 'admin')) {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      
+      // First, get authentication data
+      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) throw authError;
+      
+      if (!authData?.users) {
+        setUsers([]);
+        return;
+      }
+      
+      // Fetch profile data separately
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*');
+      
+      if (profilesError) throw profilesError;
+      
+      // Map profiles to a dictionary for easier lookup
+      const profilesMap = new Map();
+      if (profilesData) {
+        profilesData.forEach((profile: any) => {
+          profilesMap.set(profile.id, profile);
+        });
+      }
+      
+      // Combine auth and profile data
+      const combinedUsers = authData.users.map((authUser) => {
+        const profile = profilesMap.get(authUser.id) || {};
+        return {
+          id: authUser.id,
+          email: authUser.email || '',
+          name: profile.full_name || 'Unnamed User',
+          role: profile.role || 'buyer',
+          createdAt: authUser.created_at,
+          isBlocked: profile.is_blocked || false
+        };
+      });
+      
+      setUsers(combinedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
       toast({
-        title: 'Access Denied',
-        description: 'You do not have permission to view this page.',
+        title: 'Error',
+        description: 'Failed to load users. Please try again.',
         variant: 'destructive',
       });
-      navigate('/login');
+    } finally {
+      setIsLoading(false);
     }
-  }, [isAuthenticated, isLoading, user, navigate, toast]);
+  };
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        // Get users with profiles joined
-        const { data, error } = await supabase
-          .from('profiles')
-          .select(`
-            id,
-            full_name,
-            role,
-            phone,
-            address,
-            is_blocked
-          `);
-
-        if (error) throw error;
-
-        // Get emails from auth.users - in a real app, this would be done on the backend
-        // This is a simplified approach for demo purposes
-        const usersWithEmails: UserWithProfile[] = await Promise.all(
-          (data || []).map(async (profile) => {
-            // In a real app, you'd fetch this from your own users table that mirrors auth.users
-            // or use a Supabase function with admin privileges
-            const email = `${profile.full_name?.toLowerCase().replace(/\s+/g, '.')}@example.com`;
-
-            return {
-              ...profile,
-              email: email || 'N/A',
-            };
-          })
-        );
-
-        setUsers(usersWithEmails);
-      } catch (error: any) {
-        toast({
-          title: 'Error',
-          description: `Failed to fetch users: ${error.message}`,
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (isAuthenticated && user?.role === 'admin') {
-      fetchUsers();
-    }
-  }, [isAuthenticated, user, toast]);
-
-  const handleToggleUserBlock = async () => {
-    if (!userToToggle) return;
-
+  const handleToggleBlockUser = async (userId: string, isCurrentlyBlocked: boolean) => {
     try {
-      const newBlockStatus = !userToToggle.is_blocked;
-      
+      // Update the is_blocked field in profiles table
       const { error } = await supabase
         .from('profiles')
-        .update({ is_blocked: newBlockStatus })
-        .eq('id', userToToggle.id);
+        .update({ 
+          role: isCurrentlyBlocked ? null : 'blocked' 
+        })
+        .eq('id', userId);
 
       if (error) throw error;
 
       // Update local state
-      setUsers(users.map(u => 
-        u.id === userToToggle.id ? { ...u, is_blocked: newBlockStatus } : u
-      ));
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId 
+            ? { ...user, isBlocked: !isCurrentlyBlocked }
+            : user
+        )
+      );
 
       toast({
-        title: newBlockStatus ? 'User Blocked' : 'User Unblocked',
-        description: `${userToToggle.full_name || 'User'} has been ${newBlockStatus ? 'blocked' : 'unblocked'}.`,
+        title: 'Success',
+        description: `User ${isCurrentlyBlocked ? 'unblocked' : 'blocked'} successfully.`,
       });
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Error toggling user block status:', error);
       toast({
         title: 'Error',
-        description: `Failed to update user status: ${error.message}`,
+        description: 'Failed to update user status. Please try again.',
         variant: 'destructive',
       });
-    } finally {
-      setShowConfirmDialog(false);
-      setUserToToggle(null);
     }
   };
 
-  if (isLoading || loading) {
-    return <div className="container mx-auto p-8 text-center">Loading...</div>;
-  }
-
-  if (!isAuthenticated || user?.role !== 'admin') {
-    return null;
-  }
-
   return (
-    <div className="container mx-auto p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-agrigreen-900">Manage Users</h1>
-        <p className="text-gray-600">View and manage platform users</p>
-      </div>
-
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <Table>
-          <TableCaption>A list of all registered users on the platform</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Address</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.length > 0 ? (
-              users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.full_name || 'N/A'}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge className={
-                      user.role === 'admin' ? 'bg-red-100 text-red-800' :
-                      user.role === 'seller' ? 'bg-blue-100 text-blue-800' : 
-                      'bg-green-100 text-green-800'
-                    }>
-                      {user.role || 'N/A'}
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">Manage Users</h1>
+      
+      {isLoading ? (
+        <div className="text-center py-8">Loading users...</div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {users.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <p className="text-gray-500">No users found.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            users.map((user) => (
+              <Card key={user.id} className="overflow-hidden">
+                <CardHeader className="bg-gray-50 pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{user.name}</CardTitle>
+                    <Badge variant={user.isBlocked ? "destructive" : "outline"}>
+                      {user.isBlocked ? 'Blocked' : 'Active'}
                     </Badge>
-                  </TableCell>
-                  <TableCell>{user.phone || 'N/A'}</TableCell>
-                  <TableCell>{user.address || 'N/A'}</TableCell>
-                  <TableCell>
-                    <Badge className={user.is_blocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
-                      {user.is_blocked ? 'Blocked' : 'Active'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {user.role !== 'admin' && (
-                      <AlertDialog open={showConfirmDialog && userToToggle?.id === user.id} onOpenChange={setShowConfirmDialog}>
-                        <AlertDialogTrigger asChild>
-                          <div className="inline-flex items-center">
-                            <span className="mr-2 text-sm text-gray-500">
-                              {user.is_blocked ? 'Unblock' : 'Block'}
-                            </span>
-                            <Switch 
-                              checked={!user.is_blocked} 
-                              onClick={() => {
-                                setUserToToggle(user);
-                                setShowConfirmDialog(true);
-                              }}
-                            />
-                          </div>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>{user.is_blocked ? 'Unblock User' : 'Block User'}</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              {user.is_blocked 
-                                ? `Are you sure you want to unblock ${user.full_name || 'this user'}? They will regain access to the platform.` 
-                                : `Are you sure you want to block ${user.full_name || 'this user'}? They will not be able to access the platform.`}
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={handleToggleUserBlock}
-                              className={user.is_blocked ? "bg-green-600" : "bg-red-600"}
-                            >
-                              {user.is_blocked ? 'Unblock' : 'Block'}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-4">No users found</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Email</p>
+                      <p>{user.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Role</p>
+                      <p className="capitalize">{user.role}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">User ID</p>
+                      <p className="truncate text-xs">{user.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Joined</p>
+                      <p>{new Date(user.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 flex justify-end">
+                    <Button 
+                      variant={user.isBlocked ? "default" : "destructive"}
+                      onClick={() => handleToggleBlockUser(user.id, !!user.isBlocked)}
+                    >
+                      {user.isBlocked ? 'Unblock User' : 'Block User'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 };

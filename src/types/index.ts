@@ -20,7 +20,7 @@ export interface Product {
   sellerId: string;
   sellerName: string;
   status: string;
-  availability: 'available' | 'unavailable';
+  availability: 'available' | 'unavailable' | string;
   createdAt: string;
   updatedAt: string;
 }
