@@ -1,117 +1,70 @@
-
-import { useState } from 'react';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ChatMessage } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { ChatMessage, UserRole } from '@/types';
+import { useToast } from '@/components/ui/use-toast';
+
+interface Contact {
+  id: string;
+  name: string;
+  role: UserRole;
+  chatThreadId: string;
+}
 
 export const useChat = () => {
+  const { user, isAuthenticated } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
 
-  // Create or find a thread between buyer and seller
-  const getOrCreateThread = async (sellerId: string, productId: string) => {
-    if (!user) {
-      toast({
-        title: 'Please log in',
-        description: 'You need to be logged in to chat with sellers.',
-      });
-      return null;
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      fetchContacts();
     }
+  }, [user, isAuthenticated]);
 
-    try {
-      // Check if thread already exists
-      let { data: threadData, error: threadError } = await supabase
-        .from('chat_threads')
-        .select('*')
-        .eq('buyer_id', user.id)
-        .eq('seller_id', sellerId)
-        .eq('product_id', productId)
-        .single();
-
-      if (threadError) {
-        if (threadError.code === 'PGRST116') { // No rows returned
-          // Create new thread
-          const { data: newThread, error: createError } = await supabase
-            .from('chat_threads')
-            .insert({
-              buyer_id: user.id,
-              seller_id: sellerId,
-              product_id: productId,
-            })
-            .select()
-            .single();
-
-          if (createError) throw createError;
-          return newThread;
-        } else {
-          throw threadError;
-        }
-      }
-
-      return threadData;
-    } catch (error) {
-      console.error('Error getting/creating chat thread:', error);
-      toast({
-        title: 'Chat error',
-        description: 'Failed to start chat. Please try again.',
-        variant: 'destructive',
-      });
-      return null;
+  useEffect(() => {
+    if (isAuthenticated && user && selectedContact) {
+      fetchMessages(selectedContact.chatThreadId);
     }
-  };
+  }, [user, isAuthenticated, selectedContact]);
 
-  // Load messages for a specific thread
-  const loadMessages = async (threadId: string) => {
-    if (!threadId || !user) return;
-    
+  const fetchContacts = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .eq('thread_id', threadId)
-        .order('created_at', { ascending: true });
+      // Fetch contacts based on user role
+      let query = supabase.from('users').select('id, name, role');
 
-      if (error) throw error;
+      if (user?.role === 'buyer') {
+        // Buyer can only contact sellers
+        query = query.eq('role', 'seller');
+      } else if (user?.role === 'seller') {
+        // Seller can only contact buyers
+        query = query.eq('role', 'buyer');
+      }
 
-      // Process the messages
-      const processedMessages = await Promise.all(data.map(async (msg) => {
-        // Get sender profile
-        const { data: senderData } = await supabase
-          .from('profiles')
-          .select('full_name, role')
-          .eq('id', msg.sender_id)
-          .single();
+      const { data, error } = await query;
 
-        // Get receiver profile
-        const { data: receiverData } = await supabase
-          .from('profiles')
-          .select('full_name, role')
-          .eq('id', msg.receiver_id)
-          .single();
+      if (error) {
+        throw error;
+      }
 
-        return {
-          id: msg.id,
-          senderId: msg.sender_id,
-          senderName: senderData?.full_name || 'Unknown User',
-          senderRole: senderData?.role || 'buyer',
-          receiverId: msg.receiver_id,
-          receiverName: receiverData?.full_name || 'Unknown User',
-          content: msg.content,
-          timestamp: msg.created_at,
-          isRead: msg.is_read
-        } as ChatMessage;
+      // Map users to contacts and ensure each contact has a chatThreadId
+      const contactsWithChatThreadIds = (data || []).map(contact => ({
+        id: contact.id,
+        name: contact.name,
+        role: contact.role,
+        chatThreadId: generateChatThreadId(user.id, contact.id)
       }));
 
-      setMessages(processedMessages);
-    } catch (error) {
-      console.error('Error loading messages:', error);
+      setContacts(contactsWithChatThreadIds);
+    } catch (error: any) {
+      console.error('Error fetching contacts:', error);
       toast({
-        title: 'Failed to load messages',
-        description: 'There was an error loading your conversation.',
+        title: 'Error',
+        description: `Failed to fetch contacts: ${error.message}`,
         variant: 'destructive',
       });
     } finally {
@@ -119,61 +72,105 @@ export const useChat = () => {
     }
   };
 
-  // Send a message
-  const sendMessage = async (threadId: string, receiverId: string, content: string) => {
-    if (!threadId || !user) return false;
-    
+  const fetchMessages = async (threadId: string) => {
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('chat_messages')
-        .insert({
-          thread_id: threadId,
-          sender_id: user.id,
-          receiver_id: receiverId,
-          content
-        })
-        .select()
-        .single();
+        .select('*')
+        .eq('thread_id', threadId)
+        .order('timestamp', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      // Update thread's updated_at timestamp
-      await supabase
-        .from('chat_threads')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', threadId);
+      setMessages(data || []);
+    } catch (error: any) {
+      console.error('Error fetching messages:', error);
+      toast({
+        title: 'Error',
+        description: `Failed to fetch messages: ${error.message}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      // Add the new message to local state
-      const newMessage: ChatMessage = {
-        id: data.id,
-        senderId: user.id,
-        senderName: user.name,
-        senderRole: user.role,
+  const sendMessage = async (content: string, receiverId: string, receiverName: string, threadId: string): Promise<boolean> => {
+    if (!user || !isAuthenticated) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to send messages.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    if (!content.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Message cannot be empty.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    try {
+      const newMessage: Omit<ChatMessage, 'id'> = {
+        threadId,  // Add the threadId here
+        senderId: user!.id,
+        senderName: user!.name || 'User',
+        senderRole: user!.role,
         receiverId,
-        receiverName: 'Receiver', // This will be updated when messages are reloaded
+        receiverName,
         content,
-        timestamp: data.created_at,
+        timestamp: new Date().toISOString(),
         isRead: false
       };
 
-      setMessages(prev => [...prev, newMessage]);
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .insert([newMessage])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Optimistically update the local state
+      setMessages(prevMessages => [...prevMessages, data]);
+
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
-        title: 'Failed to send message',
-        description: 'There was an error sending your message. Please try again.',
+        title: 'Error',
+        description: `Failed to send message: ${error.message}`,
         variant: 'destructive',
       });
       return false;
     }
   };
 
+  const generateChatThreadId = (userId1: string, userId2: string): string => {
+    const sortedIds = [userId1, userId2].sort();
+    return `${sortedIds[0]}-${sortedIds[1]}`;
+  };
+
+  const handleContactSelect = (contact: Contact) => {
+    setSelectedContact(contact);
+  };
+
   return {
     messages,
+    contacts,
+    selectedContact,
     isLoading,
-    getOrCreateThread,
-    loadMessages,
-    sendMessage
+    sendMessage,
+    fetchMessages,
+    handleContactSelect
   };
 };

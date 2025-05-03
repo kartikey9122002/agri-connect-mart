@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -258,6 +257,17 @@ const BuyerDashboardTabs = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Fix the type conversion in the handleOrderClick function
+  const handleOrderClick = (orderId: string) => {
+    // Convert orderId to string if it's a number
+    navigate(`/buyer/receipt/${orderId.toString()}`);
+  };
+  
+  // Fix the type conversion in any other functions that might have this issue
+  const handleBrowsingHistoryClick = (productId: string) => {
+    navigate(`/products/${productId.toString()}`);
   };
 
   return (

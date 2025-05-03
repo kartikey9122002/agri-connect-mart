@@ -1,5 +1,10 @@
+
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Product } from '@/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Eye, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
 interface ProductWithRowNumber extends Product {
   rowNumber: number;
@@ -70,7 +75,7 @@ const ProductsList = ({
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => onToggleAvailability(product.id, product.availability)}
+                onClick={() => onToggleAvailability(product.id, product.availability as 'available' | 'unavailable')}
               >
                 {product.availability === 'available' ? (
                   <>

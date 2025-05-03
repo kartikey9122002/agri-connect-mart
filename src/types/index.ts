@@ -1,3 +1,4 @@
+
 export type UserRole = 'buyer' | 'seller' | 'admin';
 
 export interface User {

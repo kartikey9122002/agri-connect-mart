@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ProductsList from '@/components/seller/ProductsList';
@@ -107,10 +106,11 @@ const SellerDashboard = () => {
     }
   };
 
-  const handleViewReceipt = (productId: string, productName: string) => {
+  const handleViewReceipt = async (productId: string, productName: string) => {
     setSelectedProductId(productId);
     setSelectedProductName(productName);
     setReceiptModalOpen(true);
+    return Promise.resolve();
   };
 
   const handleViewBuyerInteractions = async (productId: string, productName: string) => {
@@ -153,6 +153,8 @@ const SellerDashboard = () => {
     } finally {
       setLoadingInteractions(false);
     }
+    
+    return Promise.resolve();
   };
 
   if (authLoading) {
