@@ -1,5 +1,4 @@
-
-export type UserRole = "seller" | "buyer" | "admin";
+export type UserRole = 'buyer' | 'seller' | 'admin';
 
 export interface User {
   id: string;
@@ -20,9 +19,10 @@ export interface Product {
   sellerId: string;
   sellerName: string;
   status: string;
-  availability: 'available' | 'unavailable' | string;
+  availability: string;
   createdAt: string;
   updatedAt: string;
+  viewedAt?: string;
 }
 
 export interface Order {
@@ -66,6 +66,7 @@ export interface PricePrediction {
 
 export interface ChatMessage {
   id: string;
+  threadId: string;
   senderId: string;
   senderName: string;
   senderRole: UserRole;
@@ -74,7 +75,6 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   isRead: boolean;
-  threadId?: string;
 }
 
 export interface BuyerInteraction {
@@ -97,7 +97,7 @@ export interface ProductReceipt {
   buyerId: string;
   buyerName: string;
   createdAt: string;
-  deliveryAddress?: string;
+  deliveryAddress: string;
 }
 
 export interface WeatherData {

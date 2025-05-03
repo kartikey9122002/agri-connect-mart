@@ -15,7 +15,7 @@ interface OrderTrackerProps {
 const OrderTracker: React.FC<OrderTrackerProps> = ({ 
   orderStatus, 
   estimatedDelivery = 'Tomorrow', 
-  orderNumber = 'N/A'  // Provide default value for orderNumber
+  orderNumber = 'N/A'
 }) => {
   const getStatusDetails = () => {
     switch (orderStatus) {

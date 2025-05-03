@@ -1,107 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Eye, CheckCircle, XCircle } from 'lucide-react';
+import React from 'react';
 import { Product } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
 
-interface ProductsListProps {
-  sellerId: string;
+interface ProductWithRowNumber extends Product {
+  rowNumber: number;
 }
 
-const ProductsList: React.FC<ProductsListProps> = ({ sellerId }) => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+interface ProductsListProps {
+  isLoading: boolean;
+  onDeleteProduct: (productId: string) => Promise<void>;
+  onToggleAvailability: (productId: string, currentAvailability: 'available' | 'unavailable') => Promise<void>;
+  onViewInteractions: (productId: string, productName: string) => Promise<void>;
+  onViewReceipt: (productId: string, productName: string) => Promise<void>;
+  products: ProductWithRowNumber[];
+}
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('seller_id', sellerId);
-
-        if (error) throw error;
-
-        setProducts(data as Product[]);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        toast({
-          title: 'Failed to load products',
-          description: 'Could not load products. Please try again.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, [sellerId, toast]);
-
-  const handleDelete = async (productId: string) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        const { error } = await supabase
-          .from('products')
-          .delete()
-          .eq('id', productId);
-
-        if (error) throw error;
-
-        setProducts(products.filter(product => product.id !== productId));
-        toast({
-          title: 'Product deleted',
-          description: 'Product has been successfully deleted.',
-        });
-      } catch (error) {
-        console.error('Error deleting product:', error);
-        toast({
-          title: 'Deletion failed',
-          description: 'Could not delete product. Please try again.',
-          variant: 'destructive',
-        });
-      }
-    }
-  };
-
-  const handleToggleAvailability = async (productId: string, currentAvailability: string) => {
-    try {
-      const newAvailability = currentAvailability === 'available' ? 'unavailable' : 'available';
-      
-      // Call the RPC function to update product availability
-      const { error } = await supabase.rpc('update_product_availability', {
-        product_id: productId,
-        new_availability: newAvailability
-      });
-
-      if (error) throw error;
-      
-      // Update the local state
-      setProducts(products.map(product => 
-        product.id === productId 
-          ? { ...product, availability: newAvailability as 'available' | 'unavailable' } 
-          : product
-      ));
-
-      toast({
-        title: 'Product updated',
-        description: `Product availability changed to ${newAvailability}`,
-      });
-    } catch (error) {
-      console.error('Error updating product availability:', error);
-      toast({
-        title: 'Update failed',
-        description: 'Could not update product availability',
-        variant: 'destructive',
-      });
-    }
-  };
-
+const ProductsList = ({ 
+  isLoading,
+  products,
+  onDeleteProduct,
+  onToggleAvailability,
+  onViewInteractions,
+  onViewReceipt
+}: ProductsListProps) => {
   if (isLoading) {
     return <div className="text-center py-4">Loading products...</div>;
   }
@@ -143,14 +63,14 @@ const ProductsList: React.FC<ProductsListProps> = ({ sellerId }) => {
                 <Button variant="outline" size="icon">
                   <Edit className="h-4 w-4" />
                 </Button>
-                <Button variant="destructive" size="icon" onClick={() => handleDelete(product.id)}>
+                <Button variant="destructive" size="icon" onClick={() => onDeleteProduct(product.id)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => handleToggleAvailability(product.id, product.availability)}
+                onClick={() => onToggleAvailability(product.id, product.availability)}
               >
                 {product.availability === 'available' ? (
                   <>

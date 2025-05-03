@@ -14,8 +14,22 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { ProductReceipt, ChatMessage } from '@/types';
+import { Product, ProductReceipt, ChatMessage } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+// Define a ChatThread interface for better type safety
+interface ChatThread {
+  id: string;
+  threadId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'buyer' | 'seller' | 'admin';
+  receiverId: string;
+  receiverName: string;
+  content: string;
+  timestamp: string;
+  isRead: boolean;
+}
 
 const BuyerDashboardTabs = () => {
   const [activeTab, setActiveTab] = useState("orders");
@@ -25,7 +39,7 @@ const BuyerDashboardTabs = () => {
     estimatedDelivery: 'Tomorrow'
   });
   const [receipts, setReceipts] = useState<ProductReceipt[]>([]);
-  const [browsingHistory, setBrowsingHistory] = useState<any[]>([]);
+  const [browsingHistory, setBrowsingHistory] = useState<Product[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -86,25 +100,52 @@ const BuyerDashboardTabs = () => {
   useEffect(() => {
     const fetchBrowsingHistory = async () => {
       try {
+        // First get products
         const { data, error } = await supabase
           .from('products')
-          .select('*, profiles!inner(full_name)')
+          .select('*')
           .eq('status', 'approved')
           .order('updated_at', { ascending: false })
           .limit(5);
 
         if (error) throw error;
 
-        const formattedHistory = data?.map(product => ({
-          id: product.id,
-          name: product.name,
-          image: product.images && product.images.length > 0 ? product.images[0] : null,
-          sellerName: product.profiles?.full_name,
-          price: product.price,
-          viewedAt: new Date().toISOString() // Mock viewed date for demo
-        })) || [];
+        // Then get seller names separately
+        const productsWithSellers = await Promise.all((data || []).map(async (product) => {
+          let sellerName = 'Unknown Seller';
+          
+          try {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', product.seller_id)
+              .single();
+              
+            if (profileData) {
+              sellerName = profileData.full_name;
+            }
+          } catch (err) {
+            console.error('Error fetching seller name:', err);
+          }
+          
+          return {
+            id: product.id,
+            name: product.name,
+            description: product.description || '',
+            price: parseFloat(product.price),
+            images: product.images || [],
+            category: product.category,
+            sellerId: product.seller_id,
+            sellerName: sellerName,
+            status: product.status,
+            availability: product.availability || 'available',
+            createdAt: product.created_at,
+            updatedAt: product.updated_at,
+            viewedAt: new Date().toISOString() // Mock viewed date for demo
+          } as Product;
+        }));
 
-        setBrowsingHistory(formattedHistory);
+        setBrowsingHistory(productsWithSellers);
       } catch (error) {
         console.error('Error fetching browsing history:', error);
         toast({
@@ -133,17 +174,38 @@ const BuyerDashboardTabs = () => {
             id,
             updated_at,
             seller_id,
-            product_id,
-            profiles!chat_threads_seller_id_fkey(full_name)
+            product_id
           `)
           .eq('buyer_id', user.id)
           .order('updated_at', { ascending: false });
 
         if (threadsError) throw threadsError;
 
-        // Fetch the last message for each thread
-        const messagePromises = threads?.map(async (thread) => {
-          const { data: lastMessage, error: messageError } = await supabase
+        // Fetch the seller names and last message for each thread
+        const messagePromises = (threads || []).map(async (thread) => {
+          // Get seller name
+          let sellerName = 'Unknown Seller';
+          let senderRole: 'buyer' | 'seller' | 'admin' = 'seller'; // Default role
+          
+          try {
+            const { data: sellerData } = await supabase
+              .from('profiles')
+              .select('full_name, role')
+              .eq('id', thread.seller_id)
+              .single();
+              
+            if (sellerData) {
+              sellerName = sellerData.full_name;
+              if (sellerData.role === 'seller' || sellerData.role === 'admin') {
+                senderRole = sellerData.role as 'seller' | 'admin';
+              }
+            }
+          } catch (err) {
+            console.error('Error fetching seller data:', err);
+          }
+          
+          // Get the last message
+          const { data: lastMessage } = await supabase
             .from('chat_messages')
             .select('*')
             .eq('thread_id', thread.id)
@@ -151,26 +213,24 @@ const BuyerDashboardTabs = () => {
             .limit(1)
             .single();
 
-          if (messageError && messageError.code !== 'PGRST116') {
-            throw messageError;
-          }
-
           return {
             id: lastMessage?.id || `thread-${thread.id}`,
             threadId: thread.id,
-            senderId: lastMessage?.sender_id || '',
-            senderName: thread.profiles?.full_name || 'Unknown Seller',
-            senderRole: 'seller',
+            senderId: lastMessage?.sender_id || thread.seller_id,
+            senderName: sellerName,
+            senderRole: senderRole,
             receiverId: user.id,
-            receiverName: user.name,
+            receiverName: user.name || 'You',
             content: lastMessage?.content || 'Start a conversation...',
             timestamp: lastMessage?.created_at || thread.updated_at,
             isRead: lastMessage?.is_read || false
           };
-        }) || [];
+        });
 
         const messagesData = await Promise.all(messagePromises);
-        setMessages(messagesData);
+        
+        // Cast the array to ChatMessage[] to satisfy TypeScript
+        setMessages(messagesData as ChatMessage[]);
       } catch (error) {
         console.error('Error fetching messages:', error);
         toast({
@@ -235,7 +295,6 @@ const BuyerDashboardTabs = () => {
             />
           </div>
           <div className="lg:col-span-1">
-            {/* Additional order information can go here */}
             <div className="bg-white p-4 rounded-md border shadow-sm">
               <h3 className="text-lg font-medium mb-2">Order Summary</h3>
               <div className="text-sm text-gray-600">
@@ -333,9 +392,9 @@ const BuyerDashboardTabs = () => {
                   className="border rounded-md overflow-hidden hover:shadow-md transition-shadow"
                 >
                   <div className="h-32 bg-gray-100">
-                    {product.image ? (
+                    {product.images && product.images.length > 0 ? (
                       <img 
-                        src={product.image} 
+                        src={product.images[0]} 
                         alt={product.name} 
                         className="w-full h-full object-cover"
                       />
@@ -348,10 +407,10 @@ const BuyerDashboardTabs = () => {
                   <div className="p-2">
                     <h4 className="font-medium text-sm truncate">{product.name}</h4>
                     <p className="text-agrigreen-600 font-semibold text-sm">
-                      ₹{parseFloat(product.price).toFixed(2)}
+                      ₹{product.price.toFixed(2)}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Viewed {new Date(product.viewedAt).toLocaleDateString()}
+                      Viewed {new Date(product.viewedAt || product.updatedAt).toLocaleDateString()}
                     </p>
                   </div>
                 </Link>
