@@ -15,7 +15,7 @@ interface OrderTrackerProps {
 const OrderTracker: React.FC<OrderTrackerProps> = ({ 
   orderStatus, 
   estimatedDelivery = 'Tomorrow', 
-  orderNumber 
+  orderNumber = 'N/A'  // Provide default value for orderNumber
 }) => {
   const getStatusDetails = () => {
     switch (orderStatus) {
@@ -61,6 +61,9 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({
   const statusDetails = getStatusDetails();
   const steps = ['processing', 'shipped', 'out-for-delivery', 'delivered'];
   const currentStepIndex = steps.indexOf(orderStatus);
+  
+  // Safely handle orderNumber for display
+  const displayOrderNumber = orderNumber ? orderNumber.replace(/-/g, '') : 'N/A';
 
   return (
     <Card>
@@ -77,7 +80,7 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({
           {statusDetails.icon}
           <div>
             <p className="font-medium">{statusDetails.message}</p>
-            <p className="text-sm text-gray-500">Order #{orderNumber}</p>
+            <p className="text-sm text-gray-500">Order #{displayOrderNumber}</p>
           </div>
         </div>
 

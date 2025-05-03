@@ -1,21 +1,15 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import OrderTracker from '@/components/buyer/OrderTracker';
-import SeasonalPriceTrends from '@/components/buyer/SeasonalPriceTrends';
+import BuyerDashboardTabs from '@/components/buyer/BuyerDashboardTabs';
+import { Button } from '@/components/ui/button';
+import { ShoppingBag } from 'lucide-react';
 
 const BuyerDashboard = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   
-  // Default order data
-  const [orderData] = useState({
-    orderStatus: 'processing' as 'processing' | 'shipped' | 'out-for-delivery' | 'delivered' | 'failed',
-    orderNumber: 'BX' + Math.floor(100000 + Math.random() * 900000),
-    estimatedDelivery: 'Tomorrow'
-  });
-
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate('/login');
@@ -37,20 +31,17 @@ const BuyerDashboard = () => {
           <h1 className="text-2xl font-bold text-agrigreen-900">Buyer Dashboard</h1>
           <p className="text-gray-600">Welcome back, {user.name || 'Buyer'}</p>
         </div>
+        <div className="mt-4 md:mt-0">
+          <Button className="flex items-center gap-2 bg-agrigreen-600 hover:bg-agrigreen-700" asChild>
+            <a href="/products">
+              <ShoppingBag className="h-4 w-4" />
+              Shop Products
+            </a>
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <OrderTracker 
-            orderStatus={orderData.orderStatus}
-            orderNumber={orderData.orderNumber}
-            estimatedDelivery={orderData.estimatedDelivery}
-          />
-        </div>
-        <div className="lg:col-span-1">
-          <SeasonalPriceTrends />
-        </div>
-      </div>
+      <BuyerDashboardTabs />
     </div>
   );
 };
