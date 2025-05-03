@@ -5,13 +5,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 interface Contact {
   id: string;
   name: string;
+  role: string;
   chatThreadId: string;
 }
 
@@ -29,27 +30,28 @@ const SellerMessagesPage = () => {
       if (!user) return;
 
       try {
-        // Fetch all users with the role of 'buyer'
-        const { data: buyers, error: buyersError } = await supabase
+        // Fetch all users with the role of 'buyer' or 'admin'
+        const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name')
-          .eq('role', 'buyer');
+          .select('id, full_name, role')
+          .in('role', ['buyer', 'admin']);
 
-        if (buyersError) {
-          console.error('Error fetching buyers:', buyersError);
+        if (error) {
+          console.error('Error fetching contacts:', error);
           toast({
             title: 'Error',
-            description: 'Failed to fetch buyers.',
+            description: 'Failed to fetch contacts.',
             variant: 'destructive',
           });
           return;
         }
 
-        // Map each buyer to a chat thread ID
-        const contactsWithThreads = buyers.map(buyer => ({
-          id: buyer.id,
-          name: buyer.full_name || 'Unknown User',
-          chatThreadId: generateChatThreadId(user.id, buyer.id),
+        // Map each contact to a chat thread ID
+        const contactsWithThreads = data.map(contact => ({
+          id: contact.id,
+          name: contact.full_name || 'Unknown User',
+          role: contact.role || 'buyer',
+          chatThreadId: generateChatThreadId(user.id, contact.id),
         }));
 
         setContacts(contactsWithThreads);
@@ -90,8 +92,9 @@ const SellerMessagesPage = () => {
         // Transform database records to ChatMessage type
         const formattedMessages = (data || []).map(msg => ({
           id: msg.id,
-          threadId: msg.thread_id,
+          threadId: msg.thread_id || '',
           senderId: msg.sender_id,
+          // Use available data or fallback to fetch from profiles
           senderName: msg.sender_name || 'Unknown',
           senderRole: msg.sender_role || 'buyer',
           receiverId: msg.receiver_id,
@@ -125,7 +128,7 @@ const SellerMessagesPage = () => {
             const newMsg = payload.new as any;
             const formattedMsg: ChatMessage = {
               id: newMsg.id,
-              threadId: newMsg.thread_id,
+              threadId: newMsg.thread_id || '',
               senderId: newMsg.sender_id,
               senderName: newMsg.sender_name || 'Unknown',
               senderRole: newMsg.sender_role || 'buyer',
@@ -152,8 +155,8 @@ const SellerMessagesPage = () => {
   }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const generateChatThreadId = (sellerId: string, buyerId: string): string => {
     const sortedIds = [sellerId, buyerId].sort();
@@ -164,8 +167,8 @@ const SellerMessagesPage = () => {
     setSelectedContact(contact);
   };
 
-  const handleSendMessage = async (content: string) => {
-    if (!selectedContact || !content.trim() || !user) return;
+  const handleSendMessage = async () => {
+    if (!selectedContact || !newMessage.trim() || !user) return;
     
     try {
       // Create a new message record in the database format
@@ -176,7 +179,8 @@ const SellerMessagesPage = () => {
         sender_role: 'seller',
         receiver_id: selectedContact.id,
         receiver_name: selectedContact.name,
-        content,
+        receiver_role: selectedContact.role,
+        content: newMessage,
         created_at: new Date().toISOString(),
         is_read: false
       };
@@ -220,7 +224,16 @@ const SellerMessagesPage = () => {
                 className={`py-2 px-4 rounded cursor-pointer hover:bg-gray-100 ${selectedContact?.id === contact.id ? 'bg-gray-200' : ''}`}
                 onClick={() => handleContactSelect(contact)}
               >
-                {contact.name}
+                <div className="flex items-center space-x-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={`https://avatar.vercel.sh/${contact.name}.png`} alt={contact.name} />
+                    <AvatarFallback>{contact.name.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <span>{contact.name}</span>
+                    <span className="text-xs text-gray-500 block">{contact.role === 'admin' ? 'Admin' : 'Buyer'}</span>
+                  </div>
+                </div>
               </li>
             ))}
           </ul>
@@ -265,8 +278,16 @@ const SellerMessagesPage = () => {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   className="mr-2"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
                 />
-                <Button onClick={() => handleSendMessage(newMessage)}><Send className="h-4 w-4"/></Button>
+                <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
+                  <Send className="h-4 w-4"/>
+                </Button>
               </div>
             </div>
           ) : (

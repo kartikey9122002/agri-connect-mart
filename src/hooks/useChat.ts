@@ -39,11 +39,14 @@ export const useChat = () => {
       let query = supabase.from('profiles').select('id, full_name, role');
 
       if (user?.role === 'buyer') {
-        // Buyer can only contact sellers
-        query = query.eq('role', 'seller');
+        // Buyer can contact sellers and admins
+        query = query.in('role', ['seller', 'admin']);
       } else if (user?.role === 'seller') {
-        // Seller can only contact buyers
-        query = query.eq('role', 'buyer');
+        // Seller can contact buyers and admins
+        query = query.in('role', ['buyer', 'admin']);
+      } else if (user?.role === 'admin') {
+        // Admin can contact buyers and sellers
+        query = query.in('role', ['buyer', 'seller']);
       }
 
       const { data, error } = await query;
@@ -80,25 +83,41 @@ export const useChat = () => {
         .from('chat_messages')
         .select('*')
         .eq('thread_id', threadId)
-        .order('timestamp', { ascending: true });
+        .order('created_at', { ascending: true });
 
       if (error) {
         throw error;
       }
 
       // Convert database records to ChatMessage type
-      const formattedMessages: ChatMessage[] = (data || []).map(msg => ({
-        id: msg.id,
-        threadId: msg.thread_id,
-        senderId: msg.sender_id,
-        senderName: msg.sender_name || 'Unknown',
-        senderRole: msg.sender_role || 'buyer',
-        receiverId: msg.receiver_id,
-        receiverName: msg.receiver_name || 'Unknown',
-        content: msg.content,
-        timestamp: msg.created_at || new Date().toISOString(),
-        isRead: msg.is_read || false
-      }));
+      const formattedMessages: ChatMessage[] = (data || []).map(msg => {
+        // Fetch user details for sender and receiver if needed
+        const getUserName = async (userId: string) => {
+          const { data } = await supabase
+            .from('profiles')
+            .select('full_name, role')
+            .eq('id', userId)
+            .single();
+          return {
+            name: data?.full_name || 'Unknown',
+            role: data?.role || 'buyer'
+          };
+        };
+
+        return {
+          id: msg.id,
+          threadId: msg.thread_id || '',
+          senderId: msg.sender_id,
+          // Use available properties or provide defaults
+          senderName: msg.sender_name || 'Unknown',
+          senderRole: msg.sender_role || 'buyer',
+          receiverId: msg.receiver_id,
+          receiverName: msg.receiver_name || 'Unknown',
+          content: msg.content,
+          timestamp: msg.created_at,
+          isRead: msg.is_read || false
+        };
+      });
 
       setMessages(formattedMessages);
     } catch (error: any) {
@@ -133,6 +152,17 @@ export const useChat = () => {
     }
 
     try {
+      // First, get receiver's profile for their role
+      const { data: receiverData, error: receiverError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', receiverId)
+        .single();
+
+      if (receiverError) {
+        console.error('Error fetching receiver data:', receiverError);
+      }
+
       // Create database-compatible object
       const newMessageRecord = {
         thread_id: threadId,
@@ -141,6 +171,7 @@ export const useChat = () => {
         sender_role: user.role,
         receiver_id: receiverId,
         receiver_name: receiverName,
+        receiver_role: receiverData?.role || 'buyer',
         content,
         created_at: new Date().toISOString(),
         is_read: false
@@ -159,12 +190,12 @@ export const useChat = () => {
       if (data && data[0]) {
         const newChatMessage: ChatMessage = {
           id: data[0].id,
-          threadId: data[0].thread_id,
+          threadId: data[0].thread_id || '',
           senderId: data[0].sender_id,
-          senderName: data[0].sender_name,
-          senderRole: data[0].sender_role,
+          senderName: data[0].sender_name || user.name || 'User',
+          senderRole: data[0].sender_role || user.role,
           receiverId: data[0].receiver_id,
-          receiverName: data[0].receiver_name,
+          receiverName: data[0].receiver_name || receiverName,
           content: data[0].content,
           timestamp: data[0].created_at,
           isRead: data[0].is_read

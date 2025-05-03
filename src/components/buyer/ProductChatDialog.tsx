@@ -54,11 +54,10 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
         .select('*')
         .eq('buyer_id', user.id)
         .eq('seller_id', sellerId)
-        .eq('product_id', productId)
-        .single();
+        .eq('product_id', productId);
       
-      if (existingThreads) {
-        return existingThreads;
+      if (existingThreads && existingThreads.length > 0) {
+        return existingThreads[0];
       }
       
       // If no thread exists, create a new one

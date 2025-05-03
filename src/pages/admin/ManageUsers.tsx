@@ -20,46 +20,32 @@ const ManageUsers = () => {
     try {
       setIsLoading(true);
       
-      // First, get authentication data
-      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) throw authError;
-      
-      if (!authData?.users) {
-        setUsers([]);
-        return;
-      }
-      
-      // Fetch profile data separately
+      // Fetch profiles data first which should be more reliable
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
       
       if (profilesError) throw profilesError;
       
-      // Map profiles to a dictionary for easier lookup
-      const profilesMap = new Map();
-      if (profilesData) {
-        profilesData.forEach((profile: any) => {
-          profilesMap.set(profile.id, profile);
-        });
+      if (!profilesData) {
+        setUsers([]);
+        return;
       }
       
-      // Combine auth and profile data
-      const combinedUsers = authData.users.map((authUser) => {
-        const profile = profilesMap.get(authUser.id) || {};
+      // Map profiles to the User type
+      const formattedUsers: User[] = profilesData.map(profile => {
         return {
-          id: authUser.id,
-          email: authUser.email || '',
+          id: profile.id,
+          email: profile.email || 'No email provided',
           name: profile.full_name || 'Unnamed User',
           role: profile.role || 'buyer',
-          createdAt: authUser.created_at,
+          createdAt: profile.created_at || new Date().toISOString(),
           isBlocked: profile.is_blocked || false
         };
       });
       
-      setUsers(combinedUsers);
-    } catch (error) {
+      setUsers(formattedUsers);
+    } catch (error: any) {
       console.error('Error fetching users:', error);
       toast({
         title: 'Error',
@@ -77,7 +63,7 @@ const ManageUsers = () => {
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          role: isCurrentlyBlocked ? null : 'blocked' 
+          is_blocked: !isCurrentlyBlocked 
         })
         .eq('id', userId);
 
@@ -96,7 +82,7 @@ const ManageUsers = () => {
         title: 'Success',
         description: `User ${isCurrentlyBlocked ? 'unblocked' : 'blocked'} successfully.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling user block status:', error);
       toast({
         title: 'Error',
