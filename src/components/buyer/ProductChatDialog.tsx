@@ -15,6 +15,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ProductChatDialogProps {
   product: Product;
@@ -25,8 +27,9 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [threadId, setThreadId] = useState<string | null>(null);
-  const { messages, isLoading, getOrCreateThread, loadMessages, sendMessage } = useChat();
+  const { messages, isLoading, fetchMessages, sendMessage } = useChat();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   // Initialize chat when dialog opens
   const handleOpenChange = async (newOpen: boolean) => {
@@ -34,23 +37,69 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
       const thread = await getOrCreateThread(product.sellerId, product.id);
       if (thread) {
         setThreadId(thread.id);
-        loadMessages(thread.id);
+        fetchMessages(thread.id);
       }
     }
     setOpen(newOpen);
   };
 
+  // Function to get or create a chat thread
+  const getOrCreateThread = async (sellerId: string, productId: string) => {
+    if (!user) return null;
+    
+    try {
+      // Check if thread already exists
+      const { data: existingThreads, error: findError } = await supabase
+        .from('chat_threads')
+        .select('*')
+        .eq('buyer_id', user.id)
+        .eq('seller_id', sellerId)
+        .eq('product_id', productId)
+        .single();
+      
+      if (existingThreads) {
+        return existingThreads;
+      }
+      
+      // If no thread exists, create a new one
+      const { data: newThread, error: createError } = await supabase
+        .from('chat_threads')
+        .insert([{
+          buyer_id: user.id,
+          seller_id: sellerId,
+          product_id: productId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      
+      if (createError) {
+        throw createError;
+      }
+      
+      return newThread;
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: `Failed to initialize chat: ${error.message}`,
+        variant: 'destructive',
+      });
+      return null;
+    }
+  };
+
   // Load messages when threadId changes
   useEffect(() => {
     if (threadId) {
-      loadMessages(threadId);
+      fetchMessages(threadId);
     }
-  }, [threadId, loadMessages]);
+  }, [threadId, fetchMessages]);
 
   // Handle sending a message
   const handleSendMessage = async () => {
     if (message.trim() && threadId && user) {
-      await sendMessage(threadId, product.sellerId, message);
+      await sendMessage(message, product.sellerId, product.sellerName, threadId);
       setMessage('');
     }
   };

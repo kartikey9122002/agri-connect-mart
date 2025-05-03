@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,7 +36,7 @@ export const useChat = () => {
     setIsLoading(true);
     try {
       // Fetch contacts based on user role
-      let query = supabase.from('users').select('id, name, role');
+      let query = supabase.from('profiles').select('id, full_name, role');
 
       if (user?.role === 'buyer') {
         // Buyer can only contact sellers
@@ -51,11 +52,11 @@ export const useChat = () => {
         throw error;
       }
 
-      // Map users to contacts and ensure each contact has a chatThreadId
+      // Map profiles to contacts and ensure each contact has a chatThreadId
       const contactsWithChatThreadIds = (data || []).map(contact => ({
         id: contact.id,
-        name: contact.name,
-        role: contact.role,
+        name: contact.full_name || 'Unknown User',
+        role: contact.role as UserRole,
         chatThreadId: generateChatThreadId(user.id, contact.id)
       }));
 
@@ -85,7 +86,21 @@ export const useChat = () => {
         throw error;
       }
 
-      setMessages(data || []);
+      // Convert database records to ChatMessage type
+      const formattedMessages: ChatMessage[] = (data || []).map(msg => ({
+        id: msg.id,
+        threadId: msg.thread_id,
+        senderId: msg.sender_id,
+        senderName: msg.sender_name || 'Unknown',
+        senderRole: msg.sender_role || 'buyer',
+        receiverId: msg.receiver_id,
+        receiverName: msg.receiver_name || 'Unknown',
+        content: msg.content,
+        timestamp: msg.created_at || new Date().toISOString(),
+        isRead: msg.is_read || false
+      }));
+
+      setMessages(formattedMessages);
     } catch (error: any) {
       console.error('Error fetching messages:', error);
       toast({
@@ -118,30 +133,46 @@ export const useChat = () => {
     }
 
     try {
-      const newMessage: Omit<ChatMessage, 'id'> = {
-        threadId,  // Add the threadId here
-        senderId: user!.id,
-        senderName: user!.name || 'User',
-        senderRole: user!.role,
-        receiverId,
-        receiverName,
+      // Create database-compatible object
+      const newMessageRecord = {
+        thread_id: threadId,
+        sender_id: user.id,
+        sender_name: user.name || 'User',
+        sender_role: user.role,
+        receiver_id: receiverId,
+        receiver_name: receiverName,
         content,
-        timestamp: new Date().toISOString(),
-        isRead: false
+        created_at: new Date().toISOString(),
+        is_read: false
       };
 
       const { data, error } = await supabase
         .from('chat_messages')
-        .insert([newMessage])
-        .select()
-        .single();
+        .insert([newMessageRecord])
+        .select();
 
       if (error) {
         throw error;
       }
 
-      // Optimistically update the local state
-      setMessages(prevMessages => [...prevMessages, data]);
+      // Format the returned data as a ChatMessage
+      if (data && data[0]) {
+        const newChatMessage: ChatMessage = {
+          id: data[0].id,
+          threadId: data[0].thread_id,
+          senderId: data[0].sender_id,
+          senderName: data[0].sender_name,
+          senderRole: data[0].sender_role,
+          receiverId: data[0].receiver_id,
+          receiverName: data[0].receiver_name,
+          content: data[0].content,
+          timestamp: data[0].created_at,
+          isRead: data[0].is_read
+        };
+
+        // Optimistically update the local state
+        setMessages(prevMessages => [...prevMessages, newChatMessage]);
+      }
 
       return true;
     } catch (error: any) {
@@ -157,7 +188,7 @@ export const useChat = () => {
 
   const generateChatThreadId = (userId1: string, userId2: string): string => {
     const sortedIds = [userId1, userId2].sort();
-    return `${sortedIds[0]}-${sortedIds[1]}`;
+    return `chat_${sortedIds[0]}_${sortedIds[1]}`;
   };
 
   const handleContactSelect = (contact: Contact) => {

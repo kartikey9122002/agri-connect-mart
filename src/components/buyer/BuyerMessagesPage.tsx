@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useChat } from '@/hooks/useChat';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,7 +28,8 @@ const BuyerMessagesPage = () => {
   const [messageInput, setMessageInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   
-  const { messages, isLoading: isLoadingMessages, loadMessages, sendMessage } = useChat();
+  // Get custom hooks
+  const { messages, isLoading: isLoadingMessages, fetchMessages, sendMessage } = useChat();
   const { user } = useAuth();
 
   // Fetch chat threads when component mounts
@@ -111,7 +113,7 @@ const BuyerMessagesPage = () => {
           console.log('New message received:', payload);
           // If we're currently viewing this thread, refresh messages
           if (selectedThreadId === payload.new.thread_id) {
-            loadMessages(selectedThreadId);
+            fetchMessages(selectedThreadId);
           }
           // Refresh threads to update unread counts
           fetchChatThreads();
@@ -135,12 +137,12 @@ const BuyerMessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, selectedThreadId, loadMessages]);
+  }, [user, selectedThreadId, fetchMessages]);
 
   // Load messages when a thread is selected
   useEffect(() => {
     if (selectedThreadId) {
-      loadMessages(selectedThreadId);
+      fetchMessages(selectedThreadId);
       
       // Mark messages as read
       const markMessagesAsRead = async () => {
@@ -155,7 +157,7 @@ const BuyerMessagesPage = () => {
       
       markMessagesAsRead();
     }
-  }, [selectedThreadId, user, loadMessages]);
+  }, [selectedThreadId, user, fetchMessages]);
 
   const handleSendMessage = async () => {
     if (!selectedThreadId || !messageInput.trim() || !user) return;
@@ -164,7 +166,7 @@ const BuyerMessagesPage = () => {
     const selectedThread = threads.find(t => t.id === selectedThreadId);
     if (!selectedThread) return;
     
-    await sendMessage(selectedThreadId, selectedThread.seller_id, messageInput);
+    await sendMessage(messageInput, selectedThread.seller_id, selectedThread.seller_name, selectedThreadId);
     setMessageInput('');
   };
 

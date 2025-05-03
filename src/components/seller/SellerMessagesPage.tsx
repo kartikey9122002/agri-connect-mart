@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,8 +31,8 @@ const SellerMessagesPage = () => {
       try {
         // Fetch all users with the role of 'buyer'
         const { data: buyers, error: buyersError } = await supabase
-          .from('users')
-          .select('id, name')
+          .from('profiles')
+          .select('id, full_name')
           .eq('role', 'buyer');
 
         if (buyersError) {
@@ -44,10 +45,10 @@ const SellerMessagesPage = () => {
           return;
         }
 
-        // Map each buyer to a chat thread ID (you might need to create these IDs)
+        // Map each buyer to a chat thread ID
         const contactsWithThreads = buyers.map(buyer => ({
           id: buyer.id,
-          name: buyer.name,
+          name: buyer.full_name || 'Unknown User',
           chatThreadId: generateChatThreadId(user.id, buyer.id),
         }));
 
@@ -74,7 +75,7 @@ const SellerMessagesPage = () => {
           .from('chat_messages')
           .select('*')
           .eq('thread_id', selectedContact.chatThreadId)
-          .order('timestamp', { ascending: true });
+          .order('created_at', { ascending: true });
 
         if (error) {
           console.error('Error fetching messages:', error);
@@ -86,7 +87,21 @@ const SellerMessagesPage = () => {
           return;
         }
 
-        setMessages(data || []);
+        // Transform database records to ChatMessage type
+        const formattedMessages = (data || []).map(msg => ({
+          id: msg.id,
+          threadId: msg.thread_id,
+          senderId: msg.sender_id,
+          senderName: msg.sender_name || 'Unknown',
+          senderRole: msg.sender_role || 'buyer',
+          receiverId: msg.receiver_id,
+          receiverName: msg.receiver_name || 'Unknown',
+          content: msg.content,
+          timestamp: msg.created_at,
+          isRead: msg.is_read
+        }));
+
+        setMessages(formattedMessages);
       } catch (error: any) {
         console.error('Error fetching messages:', error);
         toast({
@@ -107,7 +122,20 @@ const SellerMessagesPage = () => {
         { event: '*', schema: 'public', table: 'chat_messages', filter: `thread_id=eq.${selectedContact?.chatThreadId}` },
         (payload) => {
           if (payload.new) {
-            setMessages((prevMessages) => [...(prevMessages || []), payload.new as ChatMessage]);
+            const newMsg = payload.new as any;
+            const formattedMsg: ChatMessage = {
+              id: newMsg.id,
+              threadId: newMsg.thread_id,
+              senderId: newMsg.sender_id,
+              senderName: newMsg.sender_name || 'Unknown',
+              senderRole: newMsg.sender_role || 'buyer',
+              receiverId: newMsg.receiver_id,
+              receiverName: newMsg.receiver_name || 'Unknown',
+              content: newMsg.content,
+              timestamp: newMsg.created_at,
+              isRead: newMsg.is_read
+            };
+            setMessages(prevMessages => [...prevMessages, formattedMsg]);
           }
         }
       )
@@ -137,26 +165,25 @@ const SellerMessagesPage = () => {
   };
 
   const handleSendMessage = async (content: string) => {
-    if (!selectedContact || !content.trim()) return;
+    if (!selectedContact || !content.trim() || !user) return;
     
     try {
-      // Create a new message including threadId
-      const newMessage: Omit<ChatMessage, 'id'> = {
-        threadId: selectedContact.chatThreadId, // Ensure this property exists
-        senderId: user!.id,
-        senderName: user!.name || 'Seller',
-        senderRole: 'seller',
-        receiverId: selectedContact.id,
-        receiverName: selectedContact.name,
+      // Create a new message record in the database format
+      const messageRecord = {
+        thread_id: selectedContact.chatThreadId,
+        sender_id: user.id,
+        sender_name: user.name || 'Seller',
+        sender_role: 'seller',
+        receiver_id: selectedContact.id,
+        receiver_name: selectedContact.name,
         content,
-        timestamp: new Date().toISOString(),
-        isRead: false
+        created_at: new Date().toISOString(),
+        is_read: false
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('chat_messages')
-        .insert([newMessage])
-        .select('*');
+        .insert([messageRecord]);
 
       if (error) {
         console.error('Error sending message:', error);
@@ -169,7 +196,6 @@ const SellerMessagesPage = () => {
       }
 
       setNewMessage('');
-      // setMessages(prevMessages => [...(prevMessages || []), data[0]]);
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast({

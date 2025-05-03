@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -6,7 +7,7 @@ import {
   Clock, 
   MessageSquare 
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import OrderTracker from '@/components/buyer/OrderTracker';
 import PaymentReceipt from '@/components/buyer/PaymentReceipt';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ const BuyerDashboardTabs = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Fetch payment receipts
   useEffect(() => {
@@ -72,7 +74,7 @@ const BuyerDashboardTabs = () => {
           productName: item.product_name,
           orderId: item.order_id,
           quantity: item.quantity,
-          totalPrice: parseFloat(item.price),
+          totalPrice: parseFloat(item.price as unknown as string),
           buyerId: user.id,
           buyerName: user.name,
           createdAt: item.created_at,
@@ -131,7 +133,7 @@ const BuyerDashboardTabs = () => {
             id: product.id,
             name: product.name,
             description: product.description || '',
-            price: parseFloat(product.price),
+            price: parseFloat(product.price as unknown as string),
             images: product.images || [],
             category: product.category,
             sellerId: product.seller_id,
@@ -261,13 +263,12 @@ const BuyerDashboardTabs = () => {
 
   // Fix the type conversion in the handleOrderClick function
   const handleOrderClick = (orderId: string) => {
-    // Convert orderId to string if it's a number
-    navigate(`/buyer/receipt/${orderId.toString()}`);
+    navigate(`/buyer/receipt/${orderId}`);
   };
   
   // Fix the type conversion in any other functions that might have this issue
   const handleBrowsingHistoryClick = (productId: string) => {
-    navigate(`/products/${productId.toString()}`);
+    navigate(`/products/${productId}`);
   };
 
   return (
