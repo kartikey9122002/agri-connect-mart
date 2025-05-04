@@ -91,26 +91,12 @@ export const useChat = () => {
 
       // Convert database records to ChatMessage type
       const formattedMessages: ChatMessage[] = (data || []).map(msg => {
-        // Fetch user details for sender and receiver if needed
-        const getUserName = async (userId: string) => {
-          const { data } = await supabase
-            .from('profiles')
-            .select('full_name, role')
-            .eq('id', userId)
-            .single();
-          return {
-            name: data?.full_name || 'Unknown',
-            role: data?.role || 'buyer'
-          };
-        };
-
         return {
           id: msg.id,
           threadId: msg.thread_id || '',
           senderId: msg.sender_id,
-          // Use available properties or provide defaults
           senderName: msg.sender_name || 'Unknown',
-          senderRole: msg.sender_role || 'buyer',
+          senderRole: (msg.sender_role as UserRole) || 'buyer',
           receiverId: msg.receiver_id,
           receiverName: msg.receiver_name || 'Unknown',
           content: msg.content,
@@ -193,7 +179,7 @@ export const useChat = () => {
           threadId: data[0].thread_id || '',
           senderId: data[0].sender_id,
           senderName: data[0].sender_name || user.name || 'User',
-          senderRole: data[0].sender_role || user.role,
+          senderRole: (data[0].sender_role as UserRole) || user.role,
           receiverId: data[0].receiver_id,
           receiverName: data[0].receiver_name || receiverName,
           content: data[0].content,

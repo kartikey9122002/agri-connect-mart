@@ -15,6 +15,7 @@ import ProductApproval from '@/pages/admin/ProductApproval';
 import ManageUsers from '@/pages/admin/ManageUsers';
 import ViewOrders from '@/pages/admin/ViewOrders';
 import ManageSchemes from '@/pages/admin/ManageSchemes';
+import AdminMessagesPage from '@/pages/admin/AdminMessagesPage';
 import SellerDashboard from '@/pages/seller/SellerDashboard';
 import AddProduct from '@/pages/seller/AddProduct';
 import BuyerDashboard from '@/pages/buyer/BuyerDashboard';
@@ -46,6 +47,7 @@ function App() {
             <Route path="/admin/manage-users" element={<ManageUsers />} />
             <Route path="/admin/view-orders" element={<ViewOrders />} />
             <Route path="/admin/manage-schemes" element={<ManageSchemes />} />
+            <Route path="/admin/messages" element={<AdminMessagesPage />} />
             <Route path="/seller-dashboard" element={<SellerDashboard />} />
             <Route path="/seller/add-product" element={<AddProduct />} />
             <Route path="/seller/messages" element={<SellerMessagesPage />} />

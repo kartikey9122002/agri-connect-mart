@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { User } from '@/types';
+import { User, UserRole } from '@/types';
 
 const ManageUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -34,11 +34,17 @@ const ManageUsers = () => {
       
       // Map profiles to the User type
       const formattedUsers: User[] = profilesData.map(profile => {
+        // Ensure role is a valid UserRole
+        const role = profile.role as string;
+        const validRole: UserRole = 
+          role === 'seller' ? 'seller' :
+          role === 'admin' ? 'admin' : 'buyer';
+          
         return {
           id: profile.id,
           email: profile.email || 'No email provided',
           name: profile.full_name || 'Unnamed User',
-          role: profile.role || 'buyer',
+          role: validRole,
           createdAt: profile.created_at || new Date().toISOString(),
           isBlocked: profile.is_blocked || false
         };

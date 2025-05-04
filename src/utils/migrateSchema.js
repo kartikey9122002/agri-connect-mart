@@ -5,31 +5,33 @@ import { supabase } from '@/integrations/supabase/client';
 
 export async function migrateSchema() {
   try {
-    // Check if the chat_messages table has the sender_name, sender_role, and receiver_name fields
-    const { data: columns } = await supabase
-      .from('_metadata')
-      .select('columns')
-      .eq('table', 'chat_messages')
-      .single();
+    console.log('Starting schema migration check...');
     
-    // If the fields don't exist, add them
-    const missingColumns = [];
-    if (!columns.includes('sender_name')) missingColumns.push('sender_name');
-    if (!columns.includes('sender_role')) missingColumns.push('sender_role');
-    if (!columns.includes('receiver_name')) missingColumns.push('receiver_name');
+    // Check if the chat_messages table exists and has the required fields
+    const { data: columns, error: columnsError } = await supabase
+      .from('chat_messages')
+      .select('id, sender_name, sender_role, receiver_name')
+      .limit(1);
     
-    if (missingColumns.length > 0) {
-      // Add the missing columns
-      for (const column of missingColumns) {
-        await supabase.rpc('add_column_if_not_exists', {
-          table_name: 'chat_messages',
-          column_name: column, 
-          column_type: 'text'
-        });
-      }
-      console.log('Schema migration completed');
+    if (columnsError) {
+      console.error('Error checking chat_messages table:', columnsError);
+      return;
     }
+    
+    // Check if profiles table has required fields
+    const { data: profileColumns, error: profileError } = await supabase
+      .from('profiles')
+      .select('is_blocked, email, created_at')
+      .limit(1);
+      
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error('Error checking profiles table:', profileError);
+    }
+    
+    console.log('Schema check completed');
+    console.log('Chat message columns found:', columns);
+    console.log('Profile columns found:', profileColumns);
   } catch (error) {
-    console.error('Error migrating schema:', error);
+    console.error('Error in schema migration:', error);
   }
 }

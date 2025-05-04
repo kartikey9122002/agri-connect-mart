@@ -5,21 +5,22 @@ import { ChatMessage, UserRole } from '@/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, MessageCircle } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Send, Search, User, MessageCircle } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface Contact {
   id: string;
   name: string;
-  role: string;
+  role: UserRole;
   chatThreadId: string;
   unreadCount?: number;
 }
 
-const SellerMessagesPage = () => {
+const AdminMessagesPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -27,7 +28,7 @@ const SellerMessagesPage = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'buyers' | 'admins'>('buyers');
+  const [activeTab, setActiveTab] = useState<'buyers' | 'sellers'>('buyers');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,12 +36,12 @@ const SellerMessagesPage = () => {
       if (!user) return;
 
       try {
-        // Fetch contacts based on active tab
-        const role = activeTab === 'buyers' ? 'buyer' : 'admin';
+        // Fetch all users based on the active tab (buyers or sellers)
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, role')
-          .eq('role', role);
+          .select('id, full_name, role, is_blocked')
+          .in('role', [activeTab === 'buyers' ? 'buyer' : 'seller'])
+          .order('full_name');
 
         if (error) {
           throw error;
@@ -50,26 +51,29 @@ const SellerMessagesPage = () => {
         const contactsWithThreads = data.map(contact => ({
           id: contact.id,
           name: contact.full_name || 'Unknown User',
-          role: contact.role || 'buyer',
+          role: contact.role as UserRole,
           chatThreadId: generateChatThreadId(user.id, contact.id),
+          isBlocked: contact.is_blocked || false
         }));
 
-        // Get unread message counts
-        const contactsWithUnread = await Promise.all(contactsWithThreads.map(async (contact) => {
-          const { count } = await supabase
-            .from('chat_messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('thread_id', contact.chatThreadId)
-            .eq('receiver_id', user.id)
-            .eq('is_read', false);
-            
-          return {
-            ...contact,
-            unreadCount: count || 0
-          };
-        }));
+        // Get unread message count for each contact
+        const contactsWithUnreadCounts = await Promise.all(
+          contactsWithThreads.map(async (contact) => {
+            const { count } = await supabase
+              .from('chat_messages')
+              .select('*', { count: 'exact', head: true })
+              .eq('thread_id', contact.chatThreadId)
+              .eq('receiver_id', user.id)
+              .eq('is_read', false);
+              
+            return {
+              ...contact,
+              unreadCount: count || 0
+            };
+          })
+        );
 
-        setContacts(contactsWithUnread);
+        setContacts(contactsWithUnreadCounts);
       } catch (error: any) {
         console.error('Error fetching contacts:', error);
         toast({
@@ -84,15 +88,17 @@ const SellerMessagesPage = () => {
 
     // Set up real-time subscription for new messages
     const channel = supabase
-      .channel('seller-messages')
+      .channel('admin-messages')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'chat_messages', filter: `receiver_id=eq.${user?.id}` },
         (payload) => {
-          console.log('Real-time message update:', payload);
+          // If we're viewing this contact's messages, refresh them
           if (selectedContact && payload.new && payload.new.thread_id === selectedContact.chatThreadId) {
             fetchMessages(selectedContact.chatThreadId);
           }
+          
+          // Refresh contacts to update unread counts
           fetchContacts();
         }
       )
@@ -101,7 +107,7 @@ const SellerMessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, toast, activeTab, selectedContact]);
+  }, [user, toast, activeTab]);
 
   useEffect(() => {
     if (selectedContact) {
@@ -113,7 +119,17 @@ const SellerMessagesPage = () => {
           .from('chat_messages')
           .update({ is_read: true })
           .eq('thread_id', selectedContact.chatThreadId)
-          .eq('receiver_id', user.id);
+          .eq('receiver_id', user.id)
+          .then(() => {
+            // Update the contacts list to reflect the read messages
+            setContacts(prev => 
+              prev.map(contact => 
+                contact.id === selectedContact.id 
+                  ? { ...contact, unreadCount: 0 } 
+                  : contact
+              )
+            );
+          });
       }
     }
   }, [selectedContact, user]);
@@ -125,11 +141,6 @@ const SellerMessagesPage = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const generateChatThreadId = (sellerId: string, buyerId: string): string => {
-    const sortedIds = [sellerId, buyerId].sort();
-    return `chat_${sortedIds[0]}_${sortedIds[1]}`;
   };
 
   const fetchMessages = async (threadId: string) => {
@@ -144,7 +155,7 @@ const SellerMessagesPage = () => {
         throw error;
       }
 
-      // Transform database records to ChatMessage type
+      // Format messages for display
       const formattedMessages: ChatMessage[] = (data || []).map(msg => ({
         id: msg.id,
         threadId: msg.thread_id || '',
@@ -169,6 +180,11 @@ const SellerMessagesPage = () => {
     }
   };
 
+  const generateChatThreadId = (adminId: string, userId: string): string => {
+    const sortedIds = [adminId, userId].sort();
+    return `chat_${sortedIds[0]}_${sortedIds[1]}`;
+  };
+
   const handleContactSelect = (contact: Contact) => {
     setSelectedContact(contact);
   };
@@ -177,12 +193,12 @@ const SellerMessagesPage = () => {
     if (!selectedContact || !newMessage.trim() || !user) return;
     
     try {
-      // Create a new message record in the database format
+      // Create a new message record
       const messageRecord = {
         thread_id: selectedContact.chatThreadId,
         sender_id: user.id,
-        sender_name: user.name || 'Seller',
-        sender_role: 'seller',
+        sender_name: user.name || 'Admin',
+        sender_role: 'admin',
         receiver_id: selectedContact.id,
         receiver_name: selectedContact.name,
         receiver_role: selectedContact.role,
@@ -236,12 +252,12 @@ const SellerMessagesPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-4">Seller Messages</h1>
+      <h1 className="text-2xl font-bold mb-4">Admin Messages</h1>
       
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'buyers' | 'admins')}>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'buyers' | 'sellers')}>
         <TabsList className="mb-4">
           <TabsTrigger value="buyers">Chat with Buyers</TabsTrigger>
-          <TabsTrigger value="admins">Chat with Admins</TabsTrigger>
+          <TabsTrigger value="sellers">Chat with Sellers</TabsTrigger>
         </TabsList>
         
         <TabsContent value="buyers" className="space-y-4">
@@ -252,9 +268,10 @@ const SellerMessagesPage = () => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg">Buyer Contacts</CardTitle>
                   <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
                     <Input
                       placeholder="Search buyers..."
-                      className="pl-2"
+                      className="pl-8"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -270,20 +287,27 @@ const SellerMessagesPage = () => {
                       {filteredContacts.map((contact) => (
                         <div
                           key={contact.id}
-                          className={`py-2 px-4 rounded cursor-pointer hover:bg-gray-100 ${
-                            selectedContact?.id === contact.id ? 'bg-gray-200' : ''
+                          className={`p-2 rounded-md cursor-pointer hover:bg-gray-100 ${
+                            selectedContact?.id === contact.id ? 'bg-gray-100' : ''
                           } ${contact.unreadCount ? 'border-l-4 border-primary' : ''}`}
                           onClick={() => handleContactSelect(contact)}
                         >
-                          <div className="flex items-center space-x-2">
-                            <Avatar className="h-6 w-6">
+                          <div className="flex items-center">
+                            <Avatar className="h-8 w-8 mr-2">
                               <AvatarImage src={`https://avatar.vercel.sh/${contact.name}.png`} alt={contact.name} />
                               <AvatarFallback>{contact.name.charAt(0).toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            <div>
-                              <span>{contact.name}</span>
+                            <div className="flex-1">
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium">{contact.name}</span>
+                                {contact.isBlocked && (
+                                  <Badge variant="destructive" className="ml-1 text-xs">Blocked</Badge>
+                                )}
+                              </div>
                               {contact.unreadCount > 0 && (
-                                <Badge variant="default" className="ml-2">{contact.unreadCount} new</Badge>
+                                <div className="mt-1">
+                                  <Badge variant="default">{contact.unreadCount} new</Badge>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -294,56 +318,63 @@ const SellerMessagesPage = () => {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Chat Area */}
+            
+            {/* Right side - messages */}
             <div className="md:col-span-2">
               <Card className="h-[70vh] flex flex-col">
                 {selectedContact ? (
                   <>
                     <CardHeader className="pb-2 border-b">
-                      <CardTitle className="text-lg flex items-center">
-                        <Avatar className="h-6 w-6 mr-2">
-                          <AvatarImage src={`https://avatar.vercel.sh/${selectedContact.name}.png`} alt={selectedContact.name} />
-                          <AvatarFallback>{selectedContact.name.charAt(0).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        Chat with {selectedContact.name}
-                      </CardTitle>
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-lg flex items-center">
+                          <Avatar className="h-8 w-8 mr-2">
+                            <AvatarImage src={`https://avatar.vercel.sh/${selectedContact.name}.png`} alt={selectedContact.name} />
+                            <AvatarFallback>{selectedContact.name.charAt(0).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          {selectedContact.name}
+                        </CardTitle>
+                        <Badge>{selectedContact.role}</Badge>
+                      </div>
                     </CardHeader>
-                    
-                    {/* Message Display Area */}
                     <CardContent className="flex-grow overflow-y-auto p-4">
-                      {messages && messages.length > 0 ? (
-                        messages.map((message) => (
-                          <div
-                            key={message.id}
-                            className={`mb-2 p-2 rounded-md ${message.senderId === user?.id ? 'bg-blue-100 ml-auto w-fit max-w-[60%] ' : 'bg-gray-100 mr-auto w-fit max-w-[60%]'}`}
-                          >
-                            <div className="flex items-center space-x-2">
-                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={`https://avatar.vercel.sh/${message.senderName}.png`} alt={message.senderName} />
-                                <AvatarFallback>{message.senderName.charAt(0).toUpperCase()}</AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm font-semibold">{message.senderName}</span>
-                            </div>
-                            <p className="text-sm">{message.content}</p>
-                            <p className="text-xs text-gray-500">{formatTimestamp(message.timestamp)}</p>
-                          </div>
-                        ))
+                      {messages.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <MessageCircle className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                          <p>No messages yet. Start the conversation!</p>
+                        </div>
                       ) : (
-                        <div className="text-center text-gray-500">No messages yet.</div>
+                        <div className="space-y-4">
+                          {messages.map((msg) => (
+                            <div
+                              key={msg.id}
+                              className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
+                            >
+                              <div
+                                className={`rounded-lg px-3 py-2 max-w-[80%] ${
+                                  msg.senderId === user?.id
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted'
+                                }`}
+                              >
+                                <p>{msg.content}</p>
+                                <p className="text-xs opacity-70 mt-1">
+                                  {formatTimestamp(msg.timestamp)}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                          <div ref={messagesEndRef} />
+                        </div>
                       )}
-                      <div ref={messagesEndRef} />
                     </CardContent>
-
-                    {/* Input and Send Button */}
                     <div className="p-3 border-t">
-                      <div className="flex">
+                      <div className="flex gap-2">
                         <Input
                           type="text"
-                          placeholder="Enter your message..."
+                          placeholder="Type your message..."
                           value={newMessage}
                           onChange={(e) => setNewMessage(e.target.value)}
-                          className="mr-2"
+                          className="flex-1"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                               e.preventDefault();
@@ -352,16 +383,17 @@ const SellerMessagesPage = () => {
                           }}
                         />
                         <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
-                          <Send className="h-4 w-4"/>
+                          <Send className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                   </>
                 ) : (
                   <div className="h-full flex items-center justify-center">
-                    <div className="text-center text-gray-500">
-                      <MessageCircle className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                      <p>Select a buyer to start chatting</p>
+                    <div className="text-center">
+                      <User className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                      <h3 className="text-lg font-medium">Select a buyer</h3>
+                      <p className="text-gray-500">Choose a buyer from the list to start chatting</p>
                     </div>
                   </div>
                 )}
@@ -370,17 +402,18 @@ const SellerMessagesPage = () => {
           </div>
         </TabsContent>
         
-        <TabsContent value="admins" className="space-y-4">
+        <TabsContent value="sellers" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Left sidebar - contacts list */}
             <div className="md:col-span-1">
               <Card className="h-[70vh] flex flex-col">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Admin Contacts</CardTitle>
+                  <CardTitle className="text-lg">Seller Contacts</CardTitle>
                   <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
                     <Input
-                      placeholder="Search admins..."
-                      className="pl-2"
+                      placeholder="Search sellers..."
+                      className="pl-8"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -389,27 +422,34 @@ const SellerMessagesPage = () => {
                 <CardContent className="flex-grow overflow-y-auto p-2">
                   {filteredContacts.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
-                      {searchQuery ? "No admins found matching your search" : "No admins found"}
+                      {searchQuery ? "No sellers found matching your search" : "No sellers found"}
                     </div>
                   ) : (
                     <div className="space-y-1">
                       {filteredContacts.map((contact) => (
                         <div
                           key={contact.id}
-                          className={`py-2 px-4 rounded cursor-pointer hover:bg-gray-100 ${
-                            selectedContact?.id === contact.id ? 'bg-gray-200' : ''
+                          className={`p-2 rounded-md cursor-pointer hover:bg-gray-100 ${
+                            selectedContact?.id === contact.id ? 'bg-gray-100' : ''
                           } ${contact.unreadCount ? 'border-l-4 border-primary' : ''}`}
                           onClick={() => handleContactSelect(contact)}
                         >
-                          <div className="flex items-center space-x-2">
-                            <Avatar className="h-6 w-6">
+                          <div className="flex items-center">
+                            <Avatar className="h-8 w-8 mr-2">
                               <AvatarImage src={`https://avatar.vercel.sh/${contact.name}.png`} alt={contact.name} />
                               <AvatarFallback>{contact.name.charAt(0).toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            <div>
-                              <span>{contact.name}</span>
+                            <div className="flex-1">
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium">{contact.name}</span>
+                                {contact.isBlocked && (
+                                  <Badge variant="destructive" className="ml-1 text-xs">Blocked</Badge>
+                                )}
+                              </div>
                               {contact.unreadCount > 0 && (
-                                <Badge variant="default" className="ml-2">{contact.unreadCount} new</Badge>
+                                <div className="mt-1">
+                                  <Badge variant="default">{contact.unreadCount} new</Badge>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -420,56 +460,63 @@ const SellerMessagesPage = () => {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Chat Area - Same as buyers tab */}
+            
+            {/* Right side - messages - identical to buyers tab */}
             <div className="md:col-span-2">
               <Card className="h-[70vh] flex flex-col">
                 {selectedContact ? (
                   <>
                     <CardHeader className="pb-2 border-b">
-                      <CardTitle className="text-lg flex items-center">
-                        <Avatar className="h-6 w-6 mr-2">
-                          <AvatarImage src={`https://avatar.vercel.sh/${selectedContact.name}.png`} alt={selectedContact.name} />
-                          <AvatarFallback>{selectedContact.name.charAt(0).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        Chat with {selectedContact.name}
-                      </CardTitle>
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-lg flex items-center">
+                          <Avatar className="h-8 w-8 mr-2">
+                            <AvatarImage src={`https://avatar.vercel.sh/${selectedContact.name}.png`} alt={selectedContact.name} />
+                            <AvatarFallback>{selectedContact.name.charAt(0).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          {selectedContact.name}
+                        </CardTitle>
+                        <Badge>{selectedContact.role}</Badge>
+                      </div>
                     </CardHeader>
-                    
-                    {/* Message Display Area */}
                     <CardContent className="flex-grow overflow-y-auto p-4">
-                      {messages && messages.length > 0 ? (
-                        messages.map((message) => (
-                          <div
-                            key={message.id}
-                            className={`mb-2 p-2 rounded-md ${message.senderId === user?.id ? 'bg-blue-100 ml-auto w-fit max-w-[60%] ' : 'bg-gray-100 mr-auto w-fit max-w-[60%]'}`}
-                          >
-                            <div className="flex items-center space-x-2">
-                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={`https://avatar.vercel.sh/${message.senderName}.png`} alt={message.senderName} />
-                                <AvatarFallback>{message.senderName.charAt(0).toUpperCase()}</AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm font-semibold">{message.senderName}</span>
-                            </div>
-                            <p className="text-sm">{message.content}</p>
-                            <p className="text-xs text-gray-500">{formatTimestamp(message.timestamp)}</p>
-                          </div>
-                        ))
+                      {messages.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <MessageCircle className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                          <p>No messages yet. Start the conversation!</p>
+                        </div>
                       ) : (
-                        <div className="text-center text-gray-500">No messages yet.</div>
+                        <div className="space-y-4">
+                          {messages.map((msg) => (
+                            <div
+                              key={msg.id}
+                              className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
+                            >
+                              <div
+                                className={`rounded-lg px-3 py-2 max-w-[80%] ${
+                                  msg.senderId === user?.id
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted'
+                                }`}
+                              >
+                                <p>{msg.content}</p>
+                                <p className="text-xs opacity-70 mt-1">
+                                  {formatTimestamp(msg.timestamp)}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                          <div ref={messagesEndRef} />
+                        </div>
                       )}
-                      <div ref={messagesEndRef} />
                     </CardContent>
-
-                    {/* Input and Send Button */}
                     <div className="p-3 border-t">
-                      <div className="flex">
+                      <div className="flex gap-2">
                         <Input
                           type="text"
-                          placeholder="Enter your message..."
+                          placeholder="Type your message..."
                           value={newMessage}
                           onChange={(e) => setNewMessage(e.target.value)}
-                          className="mr-2"
+                          className="flex-1"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                               e.preventDefault();
@@ -478,16 +525,17 @@ const SellerMessagesPage = () => {
                           }}
                         />
                         <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
-                          <Send className="h-4 w-4"/>
+                          <Send className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                   </>
                 ) : (
                   <div className="h-full flex items-center justify-center">
-                    <div className="text-center text-gray-500">
-                      <MessageCircle className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                      <p>Select an admin to start chatting</p>
+                    <div className="text-center">
+                      <User className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                      <h3 className="text-lg font-medium">Select a seller</h3>
+                      <p className="text-gray-500">Choose a seller from the list to start chatting</p>
                     </div>
                   </div>
                 )}
@@ -500,4 +548,4 @@ const SellerMessagesPage = () => {
   );
 };
 
-export default SellerMessagesPage;
+export default AdminMessagesPage;
