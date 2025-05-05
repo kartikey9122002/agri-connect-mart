@@ -97,10 +97,14 @@ export const useChat = () => {
   const fetchMessages = async (threadId: string) => {
     setIsLoading(true);
     try {
+      // Ensure we're not passing the "chat_" prefix to the query
+      // The thread_id stored in the database should be a plain UUID without the prefix
+      const cleanThreadId = threadId.startsWith('chat_') ? threadId : `chat_${threadId}`;
+      
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
-        .eq('thread_id', threadId)
+        .eq('thread_id', cleanThreadId)
         .order('created_at', { ascending: true });
 
       if (error) {
@@ -172,9 +176,12 @@ export const useChat = () => {
         console.error('Error fetching receiver data:', receiverError);
       }
 
+      // Ensure we're using the correct threadId format (with chat_ prefix)
+      const cleanThreadId = threadId.startsWith('chat_') ? threadId : `chat_${threadId}`;
+
       // Create database-compatible object
       const newMessageRecord = {
-        thread_id: threadId,
+        thread_id: cleanThreadId,
         sender_id: user.id,
         sender_name: user.name || 'User',
         sender_role: user.role,

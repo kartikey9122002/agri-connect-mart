@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,7 @@ interface ProfileData {
   id: string;
   full_name: string | null;
   role: string | null;
-  is_blocked: boolean | null;
+  is_blocked?: boolean | null;
   email: string | null;
   created_at: string | null;
 }

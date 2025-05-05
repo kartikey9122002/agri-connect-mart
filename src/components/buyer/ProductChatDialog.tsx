@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useChat } from '@/hooks/useChat';
 import { Product } from '@/types';

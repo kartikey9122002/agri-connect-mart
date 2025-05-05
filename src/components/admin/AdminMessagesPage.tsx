@@ -25,7 +25,7 @@ interface ProfileData {
   id: string;
   full_name: string | null;
   role: string | null;
-  is_blocked: boolean | null;
+  is_blocked?: boolean | null;
 }
 
 interface MessageData {
@@ -73,8 +73,8 @@ const AdminMessagesPage = () => {
           return;
         }
 
-        // Ensure data is of correct type before mapping
-        const validData = data as ProfileData[];
+        // Safely cast data to avoid type errors
+        const validData = data as unknown as ProfileData[];
         
         // Map each contact to a chat thread ID
         const contactsWithThreads = validData.map(contact => ({
@@ -88,10 +88,11 @@ const AdminMessagesPage = () => {
         // Get unread message count for each contact
         const contactsWithUnreadCounts = await Promise.all(
           contactsWithThreads.map(async (contact) => {
+            const threadId = contact.chatThreadId;
             const { count } = await supabase
               .from('chat_messages')
               .select('*', { count: 'exact', head: true })
-              .eq('thread_id', contact.chatThreadId)
+              .eq('thread_id', threadId)
               .eq('receiver_id', user.id)
               .eq('is_read', false);
               
@@ -174,6 +175,7 @@ const AdminMessagesPage = () => {
 
   const fetchMessages = async (threadId: string) => {
     try {
+      // Use the correct thread_id format (with chat_ prefix)
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
@@ -232,9 +234,12 @@ const AdminMessagesPage = () => {
     if (!selectedContact || !newMessage.trim() || !user) return;
     
     try {
+      // Ensure we're using the thread ID with 'chat_' prefix
+      const threadId = selectedContact.chatThreadId;
+
       // Create a new message record
       const messageRecord = {
-        thread_id: selectedContact.chatThreadId,
+        thread_id: threadId,
         sender_id: user.id,
         sender_name: user.name || 'Admin',
         sender_role: 'admin',

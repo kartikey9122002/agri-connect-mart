@@ -48,6 +48,7 @@ export type Database = {
           id: string
           is_read: boolean | null
           receiver_id: string
+          receiver_name: string | null
           sender_id: string
           thread_id: string | null
         }
@@ -57,6 +58,7 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           receiver_id: string
+          receiver_name?: string | null
           sender_id: string
           thread_id?: string | null
         }
@@ -66,6 +68,7 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           receiver_id?: string
+          receiver_name?: string | null
           sender_id?: string
           thread_id?: string | null
         }
