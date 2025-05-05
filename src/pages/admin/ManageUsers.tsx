@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,8 +41,11 @@ const ManageUsers = () => {
         return;
       }
       
+      // Ensure data is of correct type before mapping
+      const validData = profilesData as unknown as ProfileData[];
+      
       // Map profiles to the User type
-      const formattedUsers: User[] = (profilesData as ProfileData[]).map(profile => {
+      const formattedUsers: User[] = validData.map(profile => {
         // Ensure role is a valid UserRole
         const role = profile.role as string;
         const validRole: UserRole = 

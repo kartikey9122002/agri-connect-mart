@@ -40,6 +40,13 @@ export async function migrateSchema() {
           column_name: 'receiver_name',
           column_type: 'text'
         }).catch(e => console.log('Error adding receiver_name column:', e));
+        
+        // Add receiver_role if it doesn't exist
+        await supabase.rpc('add_column_if_not_exists', {
+          table_name: 'chat_messages',
+          column_name: 'receiver_role',
+          column_type: 'text'
+        }).catch(e => console.log('Error adding receiver_role column:', e));
       }
     }
     
@@ -80,9 +87,22 @@ export async function migrateSchema() {
       }
     }
     
+    // Fix the issue where we try to check if chat_messages.sender_name exists but the query fails
+    // because it might actually be the entire table that's missing
+    try {
+      const { error: tableCheck } = await supabase
+        .from('chat_messages')
+        .select('id')
+        .limit(1);
+        
+      if (tableCheck && tableCheck.message.includes("relation \"chat_messages\" does not exist")) {
+        console.error('The chat_messages table does not exist yet. It will be created when the first message is sent.');
+      }
+    } catch (error) {
+      console.error('Error checking if chat_messages table exists:', error);
+    }
+    
     console.log('Schema check completed');
-    console.log('Chat message columns found:', columnsCheck);
-    console.log('Profile columns found:', profileColumns);
   } catch (error) {
     console.error('Error in schema migration:', error);
   }

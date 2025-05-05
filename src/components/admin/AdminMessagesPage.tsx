@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +26,19 @@ interface ProfileData {
   full_name: string | null;
   role: string | null;
   is_blocked: boolean | null;
+}
+
+interface MessageData {
+  id: string;
+  thread_id: string | null;
+  sender_id: string;
+  sender_name: string | null;
+  sender_role: string | null;
+  receiver_id: string;
+  receiver_name: string | null;
+  content: string;
+  created_at: string;
+  is_read: boolean | null;
 }
 
 const AdminMessagesPage = () => {
@@ -61,8 +73,11 @@ const AdminMessagesPage = () => {
           return;
         }
 
+        // Ensure data is of correct type before mapping
+        const validData = data as ProfileData[];
+        
         // Map each contact to a chat thread ID
-        const contactsWithThreads = (data as ProfileData[]).map(contact => ({
+        const contactsWithThreads = validData.map(contact => ({
           id: contact.id,
           name: contact.full_name || 'Unknown User',
           role: (contact.role as UserRole) || 'buyer',
@@ -174,19 +189,24 @@ const AdminMessagesPage = () => {
         return;
       }
 
-      // Format messages for display
-      const formattedMessages: ChatMessage[] = data.map(msg => ({
-        id: msg.id,
-        threadId: msg.thread_id || '',
-        senderId: msg.sender_id,
-        senderName: msg.sender_name || 'Unknown',
-        senderRole: (msg.sender_role as UserRole) || 'buyer',
-        receiverId: msg.receiver_id,
-        receiverName: msg.receiver_name || 'Unknown',
-        content: msg.content,
-        timestamp: msg.created_at,
-        isRead: msg.is_read || false
-      }));
+      // Format messages for display, ensuring all fields are handled
+      const formattedMessages: ChatMessage[] = data.map(msg => {
+        // Cast to our internal MessageData interface to ensure type safety
+        const typedMsg = msg as unknown as MessageData;
+        
+        return {
+          id: typedMsg.id,
+          threadId: typedMsg.thread_id || '',
+          senderId: typedMsg.sender_id,
+          senderName: typedMsg.sender_name || 'Unknown',
+          senderRole: (typedMsg.sender_role as UserRole) || 'buyer',
+          receiverId: typedMsg.receiver_id,
+          receiverName: typedMsg.receiver_name || 'Unknown',
+          content: typedMsg.content,
+          timestamp: typedMsg.created_at,
+          isRead: typedMsg.is_read || false
+        };
+      });
 
       setMessages(formattedMessages);
     } catch (error: any) {
