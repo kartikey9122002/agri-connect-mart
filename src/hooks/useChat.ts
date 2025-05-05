@@ -12,6 +12,19 @@ interface Contact {
   chatThreadId: string;
 }
 
+interface MessageData {
+  id: string;
+  thread_id: string | null;
+  sender_id: string;
+  sender_name: string | null;
+  sender_role: string | null;
+  receiver_id: string;
+  receiver_name: string | null;
+  content: string;
+  created_at: string;
+  is_read: boolean | null;
+}
+
 export const useChat = () => {
   const { user, isAuthenticated } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -100,7 +113,7 @@ export const useChat = () => {
       }
 
       // Convert database records to ChatMessage type
-      const formattedMessages: ChatMessage[] = data.map(msg => {
+      const formattedMessages: ChatMessage[] = data.map((msg: MessageData) => {
         return {
           id: msg.id,
           threadId: msg.thread_id || '',
@@ -184,17 +197,18 @@ export const useChat = () => {
 
       // Format the returned data as a ChatMessage
       if (data && data[0]) {
+        const msgData = data[0] as MessageData;
         const newChatMessage: ChatMessage = {
-          id: data[0].id,
-          threadId: data[0].thread_id || '',
-          senderId: data[0].sender_id,
-          senderName: data[0].sender_name || user.name || 'User',
-          senderRole: (data[0].sender_role as UserRole) || user.role,
-          receiverId: data[0].receiver_id,
-          receiverName: data[0].receiver_name || receiverName,
-          content: data[0].content,
-          timestamp: data[0].created_at,
-          isRead: data[0].is_read
+          id: msgData.id,
+          threadId: msgData.thread_id || '',
+          senderId: msgData.sender_id,
+          senderName: msgData.sender_name || user.name || 'User',
+          senderRole: (msgData.sender_role as UserRole) || user.role,
+          receiverId: msgData.receiver_id,
+          receiverName: msgData.receiver_name || receiverName,
+          content: msgData.content,
+          timestamp: msgData.created_at,
+          isRead: msgData.is_read || false
         };
 
         // Optimistically update the local state

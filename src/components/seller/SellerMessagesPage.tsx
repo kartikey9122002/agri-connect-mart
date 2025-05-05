@@ -20,6 +20,19 @@ interface Contact {
   unreadCount?: number;
 }
 
+interface MessageData {
+  id: string;
+  thread_id: string | null;
+  sender_id: string;
+  sender_name: string | null;
+  sender_role: string | null;
+  receiver_id: string;
+  receiver_name: string | null;
+  content: string;
+  created_at: string;
+  is_read: boolean | null;
+}
+
 const SellerMessagesPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -156,7 +169,7 @@ const SellerMessagesPage = () => {
       }
 
       // Transform database records to ChatMessage type
-      const formattedMessages: ChatMessage[] = data.map(msg => ({
+      const formattedMessages: ChatMessage[] = data.map((msg: MessageData) => ({
         id: msg.id,
         threadId: msg.thread_id || '',
         senderId: msg.sender_id,

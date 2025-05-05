@@ -22,6 +22,13 @@ interface Contact {
   isBlocked?: boolean;
 }
 
+interface ProfileData {
+  id: string;
+  full_name: string | null;
+  role: string | null;
+  is_blocked: boolean | null;
+}
+
 const AdminMessagesPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -55,10 +62,10 @@ const AdminMessagesPage = () => {
         }
 
         // Map each contact to a chat thread ID
-        const contactsWithThreads = data.map(contact => ({
+        const contactsWithThreads = (data as ProfileData[]).map(contact => ({
           id: contact.id,
           name: contact.full_name || 'Unknown User',
-          role: contact.role as UserRole,
+          role: (contact.role as UserRole) || 'buyer',
           chatThreadId: generateChatThreadId(user.id, contact.id),
           isBlocked: contact.is_blocked || false
         }));

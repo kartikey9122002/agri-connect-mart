@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +5,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { User, UserRole } from '@/types';
+
+interface ProfileData {
+  id: string;
+  full_name: string | null;
+  role: string | null;
+  is_blocked: boolean | null;
+  email: string | null;
+  created_at: string | null;
+}
 
 const ManageUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -33,7 +41,7 @@ const ManageUsers = () => {
       }
       
       // Map profiles to the User type
-      const formattedUsers: User[] = profilesData.map(profile => {
+      const formattedUsers: User[] = (profilesData as ProfileData[]).map(profile => {
         // Ensure role is a valid UserRole
         const role = profile.role as string;
         const validRole: UserRole = 
