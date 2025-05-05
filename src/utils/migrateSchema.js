@@ -10,7 +10,7 @@ export async function migrateSchema() {
     // Check if the chat_messages table exists and has the required fields
     const { data: columns, error: columnsError } = await supabase
       .from('chat_messages')
-      .select('id, sender_name, sender_role, receiver_name')
+      .select('id, sender_name, sender_role, receiver_name, thread_id')
       .limit(1);
     
     if (columnsError) {
@@ -21,7 +21,7 @@ export async function migrateSchema() {
     // Check if profiles table has required fields
     const { data: profileColumns, error: profileError } = await supabase
       .from('profiles')
-      .select('is_blocked, email, created_at')
+      .select('is_blocked, email, created_at, full_name, role')
       .limit(1);
       
     if (profileError && profileError.code !== 'PGRST116') {

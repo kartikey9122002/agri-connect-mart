@@ -55,8 +55,13 @@ export const useChat = () => {
         throw error;
       }
 
+      if (!data) {
+        setContacts([]);
+        return;
+      }
+
       // Map profiles to contacts and ensure each contact has a chatThreadId
-      const contactsWithChatThreadIds = (data || []).map(contact => ({
+      const contactsWithChatThreadIds = data.map(contact => ({
         id: contact.id,
         name: contact.full_name || 'Unknown User',
         role: contact.role as UserRole,
@@ -89,8 +94,13 @@ export const useChat = () => {
         throw error;
       }
 
+      if (!data) {
+        setMessages([]);
+        return;
+      }
+
       // Convert database records to ChatMessage type
-      const formattedMessages: ChatMessage[] = (data || []).map(msg => {
+      const formattedMessages: ChatMessage[] = data.map(msg => {
         return {
           id: msg.id,
           threadId: msg.thread_id || '',

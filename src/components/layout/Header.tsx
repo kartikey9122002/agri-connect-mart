@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ChevronDown, LogOut, User, ShoppingBag, Settings } from 'lucide-react';
+import { ChevronDown, LogOut, User, ShoppingBag, Settings, MessageSquare } from 'lucide-react';
 
 const Header = () => {
   const { isAuthenticated, user, logout } = useAuth();
@@ -75,6 +75,26 @@ const Header = () => {
                   </Link>
                 </li>
               )}
+              
+              {/* Show Messages tab based on user role */}
+              {isAuthenticated && (
+                <li>
+                  <Link
+                    to={user?.role === 'seller' ? '/seller/messages' : 
+                        user?.role === 'admin' ? '/admin/messages' : 
+                        '/buyer/messages'}
+                    className={`text-sm ${
+                      isActive('/seller/messages') || 
+                      isActive('/admin/messages') || 
+                      isActive('/buyer/messages') 
+                        ? 'text-agrigreen-600 font-medium' 
+                        : 'text-gray-600 hover:text-agrigreen-600'
+                    }`}
+                  >
+                    Messages
+                  </Link>
+                </li>
+              )}
             </ul>
           </nav>
           
@@ -127,22 +147,40 @@ const Header = () => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {user?.role === 'seller' && (
-                      <DropdownMenuItem onClick={() => navigate('/seller-dashboard')}>
-                        <ShoppingBag className="h-4 w-4 mr-2" />
-                        Seller Dashboard
-                      </DropdownMenuItem>
+                      <>
+                        <DropdownMenuItem onClick={() => navigate('/seller-dashboard')}>
+                          <ShoppingBag className="h-4 w-4 mr-2" />
+                          Seller Dashboard
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/seller/messages')}>
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Messages
+                        </DropdownMenuItem>
+                      </>
                     )}
                     {user?.role === 'buyer' && (
-                      <DropdownMenuItem onClick={() => navigate('/buyer-dashboard')}>
-                        <ShoppingBag className="h-4 w-4 mr-2" />
-                        Buyer Dashboard
-                      </DropdownMenuItem>
+                      <>
+                        <DropdownMenuItem onClick={() => navigate('/buyer-dashboard')}>
+                          <ShoppingBag className="h-4 w-4 mr-2" />
+                          Buyer Dashboard
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/buyer/messages')}>
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Messages
+                        </DropdownMenuItem>
+                      </>
                     )}
                     {user?.role === 'admin' && (
-                      <DropdownMenuItem onClick={() => navigate('/admin-dashboard')}>
-                        <Settings className="h-4 w-4 mr-2" />
-                        Admin Dashboard
-                      </DropdownMenuItem>
+                      <>
+                        <DropdownMenuItem onClick={() => navigate('/admin-dashboard')}>
+                          <Settings className="h-4 w-4 mr-2" />
+                          Admin Dashboard
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/admin/messages')}>
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Messages
+                        </DropdownMenuItem>
+                      </>
                     )}
                     <DropdownMenuItem onClick={handleLogout}>
                       <LogOut className="h-4 w-4 mr-2" />

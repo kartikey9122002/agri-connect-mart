@@ -23,7 +23,7 @@ const ManageUsers = () => {
       // Fetch profiles data first which should be more reliable
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('*');
+        .select('id, full_name, role, is_blocked, email, created_at');
       
       if (profilesError) throw profilesError;
       

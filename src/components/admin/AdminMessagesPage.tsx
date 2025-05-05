@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +19,7 @@ interface Contact {
   role: UserRole;
   chatThreadId: string;
   unreadCount?: number;
+  isBlocked?: boolean;
 }
 
 const AdminMessagesPage = () => {
@@ -40,11 +42,16 @@ const AdminMessagesPage = () => {
         const { data, error } = await supabase
           .from('profiles')
           .select('id, full_name, role, is_blocked')
-          .in('role', [activeTab === 'buyers' ? 'buyer' : 'seller'])
+          .eq('role', activeTab === 'buyers' ? 'buyer' : 'seller')
           .order('full_name');
 
         if (error) {
           throw error;
+        }
+
+        if (!data) {
+          setContacts([]);
+          return;
         }
 
         // Map each contact to a chat thread ID
@@ -92,7 +99,7 @@ const AdminMessagesPage = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'chat_messages', filter: `receiver_id=eq.${user?.id}` },
-        (payload) => {
+        (payload: any) => {
           // If we're viewing this contact's messages, refresh them
           if (selectedContact && payload.new && payload.new.thread_id === selectedContact.chatThreadId) {
             fetchMessages(selectedContact.chatThreadId);
@@ -107,7 +114,7 @@ const AdminMessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, toast, activeTab]);
+  }, [user, toast, activeTab, selectedContact]);
 
   useEffect(() => {
     if (selectedContact) {
@@ -155,13 +162,18 @@ const AdminMessagesPage = () => {
         throw error;
       }
 
+      if (!data) {
+        setMessages([]);
+        return;
+      }
+
       // Format messages for display
-      const formattedMessages: ChatMessage[] = (data || []).map(msg => ({
+      const formattedMessages: ChatMessage[] = data.map(msg => ({
         id: msg.id,
         threadId: msg.thread_id || '',
         senderId: msg.sender_id,
         senderName: msg.sender_name || 'Unknown',
-        senderRole: msg.sender_role as UserRole || 'buyer',
+        senderRole: (msg.sender_role as UserRole) || 'buyer',
         receiverId: msg.receiver_id,
         receiverName: msg.receiver_name || 'Unknown',
         content: msg.content,
@@ -215,7 +227,23 @@ const AdminMessagesPage = () => {
         throw error;
       }
 
+      // Add new message to state for immediate display
+      const newMessageObj: ChatMessage = {
+        id: Date.now().toString(), // Temporary ID
+        threadId: selectedContact.chatThreadId,
+        senderId: user.id,
+        senderName: user.name || 'Admin',
+        senderRole: 'admin',
+        receiverId: selectedContact.id,
+        receiverName: selectedContact.name,
+        content: newMessage,
+        timestamp: new Date().toISOString(),
+        isRead: false
+      };
+      
+      setMessages([...messages, newMessageObj]);
       setNewMessage('');
+      scrollToBottom();
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast({

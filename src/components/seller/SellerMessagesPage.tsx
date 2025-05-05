@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,6 +47,11 @@ const SellerMessagesPage = () => {
           throw error;
         }
 
+        if (!data) {
+          setContacts([]);
+          return;
+        }
+
         // Map each contact to a chat thread ID
         const contactsWithThreads = data.map(contact => ({
           id: contact.id,
@@ -88,7 +94,7 @@ const SellerMessagesPage = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'chat_messages', filter: `receiver_id=eq.${user?.id}` },
-        (payload) => {
+        (payload: any) => {
           console.log('Real-time message update:', payload);
           if (selectedContact && payload.new && payload.new.thread_id === selectedContact.chatThreadId) {
             fetchMessages(selectedContact.chatThreadId);
@@ -144,13 +150,18 @@ const SellerMessagesPage = () => {
         throw error;
       }
 
+      if (!data) {
+        setMessages([]);
+        return;
+      }
+
       // Transform database records to ChatMessage type
-      const formattedMessages: ChatMessage[] = (data || []).map(msg => ({
+      const formattedMessages: ChatMessage[] = data.map(msg => ({
         id: msg.id,
         threadId: msg.thread_id || '',
         senderId: msg.sender_id,
         senderName: msg.sender_name || 'Unknown',
-        senderRole: msg.sender_role as UserRole || 'buyer',
+        senderRole: (msg.sender_role as UserRole) || 'buyer',
         receiverId: msg.receiver_id,
         receiverName: msg.receiver_name || 'Unknown',
         content: msg.content,
@@ -199,7 +210,23 @@ const SellerMessagesPage = () => {
         throw error;
       }
 
+      // Add message to state for immediate display
+      const newMsg: ChatMessage = {
+        id: Date.now().toString(), // Temporary ID until refresh
+        threadId: selectedContact.chatThreadId,
+        senderId: user.id,
+        senderName: user.name || 'Seller',
+        senderRole: 'seller',
+        receiverId: selectedContact.id,
+        receiverName: selectedContact.name,
+        content: newMessage,
+        timestamp: new Date().toISOString(),
+        isRead: false
+      };
+      
+      setMessages(prevMessages => [...prevMessages, newMsg]);
       setNewMessage('');
+      scrollToBottom();
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
