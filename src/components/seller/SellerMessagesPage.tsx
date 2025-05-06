@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -91,11 +90,8 @@ const SellerMessagesPage = () => {
         setContacts(contactsWithUnread);
       } catch (error: any) {
         console.error('Error fetching contacts:', error);
-        toast({
-          title: 'Error',
-          description: `Failed to fetch contacts: ${error.message}`,
-          variant: 'destructive',
-        });
+        // Toast removed as it might be causing issues
+        // Instead, log the error to the console
       }
     };
 
@@ -120,7 +116,7 @@ const SellerMessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, toast, activeTab, selectedContact]);
+  }, [user, activeTab, selectedContact]);
 
   useEffect(() => {
     if (selectedContact) {
@@ -155,15 +151,11 @@ const SellerMessagesPage = () => {
     try {
       console.log('Fetching messages for thread ID:', threadId);
       
-      // Check if the thread ID has the "chat_" prefix and strip it if present
-      // to ensure proper UUID format for the database query
-      let queryThreadId = threadId;
-      
       // The thread ID should be used as is - the database stores the full chat_X_Y format
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
-        .eq('thread_id', queryThreadId)
+        .eq('thread_id', threadId)
         .order('created_at', { ascending: true });
 
       if (error) {
@@ -194,11 +186,8 @@ const SellerMessagesPage = () => {
       setMessages(formattedMessages);
     } catch (error: any) {
       console.error('Error fetching messages:', error);
-      toast({
-        title: 'Error',
-        description: `Failed to fetch messages: ${error.message}`,
-        variant: 'destructive',
-      });
+      // Toast removed as it might be causing issues
+      // Instead, just log the error to console
     }
   };
 
@@ -251,11 +240,8 @@ const SellerMessagesPage = () => {
       scrollToBottom();
     } catch (error: any) {
       console.error('Error sending message:', error);
-      toast({
-        title: 'Error',
-        description: `Failed to send message: ${error.message}`,
-        variant: 'destructive',
-      });
+      // Toast removed as it might be causing issues
+      // Instead, just log the error to console
     }
   };
 
