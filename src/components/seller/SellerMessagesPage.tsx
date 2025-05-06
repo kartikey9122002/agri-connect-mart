@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -151,7 +152,6 @@ const SellerMessagesPage = () => {
     try {
       console.log('Fetching messages for thread ID:', threadId);
       
-      // The thread ID should be used as is - the database stores the full chat_X_Y format
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
@@ -199,6 +199,8 @@ const SellerMessagesPage = () => {
     if (!selectedContact || !newMessage.trim() || !user) return;
     
     try {
+      console.log('Sending message to thread:', selectedContact.chatThreadId);
+      
       // Create a new message record in the database format
       const messageRecord = {
         thread_id: selectedContact.chatThreadId,

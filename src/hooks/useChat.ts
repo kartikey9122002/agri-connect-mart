@@ -84,11 +84,6 @@ export const useChat = () => {
       setContacts(contactsWithChatThreadIds);
     } catch (error: any) {
       console.error('Error fetching contacts:', error);
-      toast({
-        title: 'Error',
-        description: `Failed to fetch contacts: ${error.message}`,
-        variant: 'destructive',
-      });
     } finally {
       setIsLoading(false);
     }
@@ -97,14 +92,12 @@ export const useChat = () => {
   const fetchMessages = async (threadId: string) => {
     setIsLoading(true);
     try {
-      // Ensure we're not passing the "chat_" prefix to the query
-      // The thread_id stored in the database should be a plain UUID without the prefix
-      const cleanThreadId = threadId.startsWith('chat_') ? threadId : `chat_${threadId}`;
+      console.log('Fetching messages for threadId:', threadId);
       
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
-        .eq('thread_id', cleanThreadId)
+        .eq('thread_id', threadId)
         .order('created_at', { ascending: true });
 
       if (error) {
@@ -135,11 +128,6 @@ export const useChat = () => {
       setMessages(formattedMessages);
     } catch (error: any) {
       console.error('Error fetching messages:', error);
-      toast({
-        title: 'Error',
-        description: `Failed to fetch messages: ${error.message}`,
-        variant: 'destructive',
-      });
     } finally {
       setIsLoading(false);
     }
@@ -147,24 +135,18 @@ export const useChat = () => {
 
   const sendMessage = async (content: string, receiverId: string, receiverName: string, threadId: string): Promise<boolean> => {
     if (!user || !isAuthenticated) {
-      toast({
-        title: 'Error',
-        description: 'You must be logged in to send messages.',
-        variant: 'destructive',
-      });
+      console.error('User must be logged in to send messages');
       return false;
     }
 
     if (!content.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Message cannot be empty.',
-        variant: 'destructive',
-      });
+      console.error('Message cannot be empty');
       return false;
     }
 
     try {
+      console.log('Sending message with threadId:', threadId);
+      
       // First, get receiver's profile for their role
       const { data: receiverData, error: receiverError } = await supabase
         .from('profiles')
@@ -176,12 +158,9 @@ export const useChat = () => {
         console.error('Error fetching receiver data:', receiverError);
       }
 
-      // Ensure we're using the correct threadId format (with chat_ prefix)
-      const cleanThreadId = threadId.startsWith('chat_') ? threadId : `chat_${threadId}`;
-
       // Create database-compatible object
       const newMessageRecord = {
-        thread_id: cleanThreadId,
+        thread_id: threadId,
         sender_id: user.id,
         sender_name: user.name || 'User',
         sender_role: user.role,
@@ -225,11 +204,6 @@ export const useChat = () => {
       return true;
     } catch (error: any) {
       console.error('Error sending message:', error);
-      toast({
-        title: 'Error',
-        description: `Failed to send message: ${error.message}`,
-        variant: 'destructive',
-      });
       return false;
     }
   };
