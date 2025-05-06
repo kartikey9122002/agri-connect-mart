@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useChat } from '@/hooks/useChat';
 import { Product } from '@/types';
@@ -36,6 +37,7 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
       const thread = await getOrCreateThread(product.sellerId, product.id);
       if (thread) {
         setThreadId(thread.id);
+        // Make sure to strip any prefixes when fetching messages
         fetchMessages(thread.id);
       }
     }
@@ -54,6 +56,8 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
         .eq('buyer_id', user.id)
         .eq('seller_id', sellerId)
         .eq('product_id', productId);
+      
+      if (findError) throw findError;
       
       if (existingThreads && existingThreads.length > 0) {
         return existingThreads[0];

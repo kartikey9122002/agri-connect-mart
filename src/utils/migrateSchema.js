@@ -10,7 +10,7 @@ export async function migrateSchema() {
     // Check if the chat_messages table exists and has all required fields
     const { data: columnsCheck, error: columnsError } = await supabase
       .from('chat_messages')
-      .select('id, sender_name, sender_role, receiver_name, thread_id')
+      .select('id, sender_name, sender_role, receiver_name, receiver_role, thread_id')
       .limit(1);
     
     if (columnsError) {
@@ -53,7 +53,7 @@ export async function migrateSchema() {
     // Check if profiles table has required fields
     const { data: profileColumns, error: profileError } = await supabase
       .from('profiles')
-      .select('is_blocked, email, created_at, full_name, role')
+      .select('is_blocked, email, created_at, full_name, role, location')
       .limit(1);
       
     if (profileError) {
@@ -84,6 +84,13 @@ export async function migrateSchema() {
           column_type: 'timestamp with time zone',
           default_value: 'now()'
         }).catch(e => console.log('Error adding created_at column:', e));
+        
+        // Add location if it doesn't exist
+        await supabase.rpc('add_column_if_not_exists', {
+          table_name: 'profiles',
+          column_name: 'location',
+          column_type: 'text'
+        }).catch(e => console.log('Error adding location column:', e));
       }
     }
     

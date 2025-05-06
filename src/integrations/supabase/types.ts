@@ -49,7 +49,10 @@ export type Database = {
           is_read: boolean | null
           receiver_id: string
           receiver_name: string | null
+          receiver_role: string | null
           sender_id: string
+          sender_name: string | null
+          sender_role: string | null
           thread_id: string | null
         }
         Insert: {
@@ -59,7 +62,10 @@ export type Database = {
           is_read?: boolean | null
           receiver_id: string
           receiver_name?: string | null
+          receiver_role?: string | null
           sender_id: string
+          sender_name?: string | null
+          sender_role?: string | null
           thread_id?: string | null
         }
         Update: {
@@ -69,7 +75,10 @@ export type Database = {
           is_read?: boolean | null
           receiver_id?: string
           receiver_name?: string | null
+          receiver_role?: string | null
           sender_id?: string
+          sender_name?: string | null
+          sender_role?: string | null
           thread_id?: string | null
         }
         Relationships: [
@@ -238,24 +247,36 @@ export type Database = {
         Row: {
           address: string | null
           avatar_url: string | null
+          created_at: string | null
+          email: string | null
           full_name: string | null
           id: string
+          is_blocked: boolean | null
+          location: string | null
           phone: string | null
           role: string | null
         }
         Insert: {
           address?: string | null
           avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
           full_name?: string | null
           id: string
+          is_blocked?: boolean | null
+          location?: string | null
           phone?: string | null
           role?: string | null
         }
         Update: {
           address?: string | null
           avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
+          is_blocked?: boolean | null
+          location?: string | null
           phone?: string | null
           role?: string | null
         }

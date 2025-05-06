@@ -10,7 +10,7 @@ interface ProfileData {
   id: string;
   full_name: string | null;
   role: string | null;
-  is_blocked?: boolean | null;
+  is_blocked: boolean | null;
   email: string | null;
   created_at: string | null;
 }
@@ -79,9 +79,7 @@ const ManageUsers = () => {
       // Update the is_blocked field in profiles table
       const { error } = await supabase
         .from('profiles')
-        .update({ 
-          is_blocked: !isCurrentlyBlocked 
-        })
+        .update({ is_blocked: !isCurrentlyBlocked })
         .eq('id', userId);
 
       if (error) throw error;

@@ -1,147 +1,164 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Thermometer, CloudSun, MapPin } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Cloud, Sun, CloudRain, CloudLightning } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import LocationUpdateModal from './LocationUpdateModal';
 
-interface WeatherData {
+interface WeatherDataType {
   location: string;
   temperature: number;
   condition: string;
-  icon: string;
-  forecast: {
+  forecast: Array<{
     date: string;
     temperature: number;
     condition: string;
-    icon: string;
-  }[];
+  }>;
 }
 
 const WeatherWidget: React.FC = () => {
-  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [weatherData, setWeatherData] = useState<WeatherDataType | null>(null);
+  const [userLocation, setUserLocation] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
-    const fetchWeatherData = async () => {
-      setIsLoading(true);
-      try {
-        // In a real app, this would be a call to a weather API using the user's location
-        // For demo purposes, we'll use some mock data
+    if (user) {
+      fetchUserLocation();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (userLocation) {
+      fetchWeatherData();
+    }
+  }, [userLocation]);
+
+  const fetchUserLocation = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('location')
+        .eq('id', user.id)
+        .single();
         
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const mockWeatherData: WeatherData = {
-          location: 'New Delhi, India',
-          temperature: 32,
+      if (error) throw error;
+      
+      if (data && data.location) {
+        setUserLocation(data.location);
+      } else {
+        // Default location if none set
+        setUserLocation('Delhi');
+      }
+    } catch (error) {
+      console.error('Error fetching user location:', error);
+      // Default location on error
+      setUserLocation('Delhi');
+    }
+  };
+
+  const fetchWeatherData = async () => {
+    setLoading(true);
+    
+    try {
+      // This would typically be a real API call to a weather service
+      // using the userLocation as a parameter
+      // For now we're simulating weather data
+      
+      setTimeout(() => {
+        const mockWeatherData: WeatherDataType = {
+          location: userLocation || 'Delhi',
+          temperature: 28,
           condition: 'Sunny',
-          icon: 'sun',
           forecast: [
-            {
-              date: 'Tomorrow',
-              temperature: 30,
-              condition: 'Partly Cloudy',
-              icon: 'cloud-sun'
-            },
-            {
-              date: 'Wednesday',
-              temperature: 29,
-              condition: 'Cloudy',
-              icon: 'cloud'
-            },
-            {
-              date: 'Thursday',
-              temperature: 31,
-              condition: 'Sunny',
-              icon: 'sun'
-            }
-          ]
+            { date: 'Tomorrow', temperature: 29, condition: 'Partly Cloudy' },
+            { date: 'Wednesday', temperature: 27, condition: 'Rainy' },
+            { date: 'Thursday', temperature: 26, condition: 'Thunderstorms' },
+          ],
         };
         
         setWeatherData(mockWeatherData);
-      } catch (error) {
-        console.error('Error fetching weather data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchWeatherData();
-  }, []);
-  
-  if (isLoading) {
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error('Error fetching weather data:', error);
+      setLoading(false);
+    }
+  };
+
+  const getWeatherIcon = (condition: string) => {
+    switch (condition.toLowerCase()) {
+      case 'cloudy':
+      case 'partly cloudy':
+        return <Cloud className="h-12 w-12 text-gray-500" />;
+      case 'rainy':
+        return <CloudRain className="h-12 w-12 text-blue-500" />;
+      case 'thunderstorms':
+        return <CloudLightning className="h-12 w-12 text-purple-500" />;
+      case 'sunny':
+      default:
+        return <Sun className="h-12 w-12 text-yellow-500" />;
+    }
+  };
+
+  if (loading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Weather Forecast</CardTitle>
+          <CardTitle className="flex justify-between items-center">
+            Weather Forecast
+            <LocationUpdateModal />
+          </CardTitle>
+          <CardDescription>Loading weather data...</CardDescription>
         </CardHeader>
-        <CardContent className="flex justify-center">
-          <div className="animate-pulse flex flex-col items-center">
-            <div className="h-10 w-10 bg-gray-200 rounded-full mb-2"></div>
-            <div className="h-4 w-24 bg-gray-200 rounded mb-1"></div>
-            <div className="h-4 w-16 bg-gray-200 rounded"></div>
-          </div>
-        </CardContent>
       </Card>
     );
   }
-  
+
   if (!weatherData) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Weather Forecast</CardTitle>
+          <CardTitle className="flex justify-between items-center">
+            Weather Forecast
+            <LocationUpdateModal />
+          </CardTitle>
+          <CardDescription>No weather data available</CardDescription>
         </CardHeader>
-        <CardContent className="text-center">
-          <p>Unable to fetch weather data</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-2"
-            onClick={() => setIsLoading(true)}
-          >
-            Retry
-          </Button>
-        </CardContent>
       </Card>
     );
   }
-  
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg flex items-center justify-between">
-          <span>Weather Forecast</span>
+        <CardTitle className="flex justify-between items-center">
+          Weather Forecast
+          <LocationUpdateModal />
         </CardTitle>
+        <CardDescription>Current conditions for {weatherData.location}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center mb-4">
-          <CloudSun className="h-10 w-10 text-amber-500 mr-3" />
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <div className="flex items-center">
-              <h3 className="text-xl font-bold">{weatherData.temperature}°C</h3>
-              <span className="ml-2 text-gray-600">{weatherData.condition}</span>
-            </div>
-            <div className="flex items-center text-gray-500 text-sm">
-              <MapPin className="h-3 w-3 mr-1" />
-              <span>{weatherData.location}</span>
-            </div>
+            <p className="text-3xl font-bold">{weatherData.temperature}°C</p>
+            <p className="text-gray-500">{weatherData.condition}</p>
           </div>
+          {getWeatherIcon(weatherData.condition)}
         </div>
         
-        <div className="border-t border-gray-100 pt-3">
-          <h4 className="text-sm font-medium mb-2">3-Day Forecast</h4>
+        <div className="border-t pt-4">
+          <h3 className="font-medium mb-2">3-Day Forecast</h3>
           <div className="space-y-2">
             {weatherData.forecast.map((day, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <span className="text-sm">{day.date}</span>
-                <div className="flex items-center">
-                  <CloudSun className="h-4 w-4 text-gray-400 mr-1" />
-                  <span className="text-sm">{day.condition}</span>
-                </div>
-                <div className="flex items-center">
-                  <Thermometer className="h-3 w-3 mr-1 text-amber-500" />
-                  <span className="text-sm font-medium">{day.temperature}°C</span>
+              <div key={index} className="flex justify-between items-center">
+                <span>{day.date}</span>
+                <div className="flex items-center gap-2">
+                  <span>{day.temperature}°C</span>
+                  <span className="text-xs text-gray-500">{day.condition}</span>
                 </div>
               </div>
             ))}
