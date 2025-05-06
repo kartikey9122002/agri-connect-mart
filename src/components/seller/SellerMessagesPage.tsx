@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -152,10 +153,17 @@ const SellerMessagesPage = () => {
 
   const fetchMessages = async (threadId: string) => {
     try {
+      console.log('Fetching messages for thread ID:', threadId);
+      
+      // Check if the thread ID has the "chat_" prefix and strip it if present
+      // to ensure proper UUID format for the database query
+      let queryThreadId = threadId;
+      
+      // The thread ID should be used as is - the database stores the full chat_X_Y format
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
-        .eq('thread_id', threadId)
+        .eq('thread_id', queryThreadId)
         .order('created_at', { ascending: true });
 
       if (error) {
@@ -166,6 +174,8 @@ const SellerMessagesPage = () => {
         setMessages([]);
         return;
       }
+
+      console.log('Messages data received:', data);
 
       // Transform database records to ChatMessage type
       const formattedMessages: ChatMessage[] = data.map((msg: MessageData) => ({
