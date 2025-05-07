@@ -25,12 +25,8 @@ import BrowsingHistoryPage from '@/pages/buyer/BrowsingHistoryPage';
 import BuyerMessagesPage from '@/pages/buyer/BuyerMessagesPage';
 import SellerMessagesPage from '@/pages/seller/SellerMessagesPage';
 import { AuthProvider } from '@/contexts/AuthContext';
-import useStorageSetup from '@/hooks/useStorageSetup';
 
 function App() {
-  // Initialize storage buckets and set up database columns
-  const { isStorageReady } = useStorageSetup();
-  
   return (
     <BrowserRouter>
       <AuthProvider>
