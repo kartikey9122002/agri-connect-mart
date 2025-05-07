@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { toast } from "sonner";
 
 interface ProductChatDialogProps {
   product: Product;
@@ -96,7 +97,7 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
     if (!user) return null;
     
     try {
-      // Generate thread ID
+      // Generate thread ID using consistent method
       const threadId = generateChatThreadId(user.id, sellerId);
 
       // Check if thread already exists
@@ -132,14 +133,15 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
       return newThread;
     } catch (error: any) {
       console.error('Failed to initialize chat:', error.message);
+      toast.error('Failed to initialize chat');
       return null;
     }
   };
 
-  // Generate a consistent thread ID for any two users
+  // Generate a consistent thread ID 
   const generateChatThreadId = (buyerId: string, sellerId: string): string => {
     const sortedIds = [buyerId, sellerId].sort();
-    return `chat_${sortedIds[0]}_${sortedIds[1]}`;
+    return `thread_${sortedIds[0]}_${sortedIds[1]}`;
   };
 
   // Fetch messages for a thread
@@ -167,6 +169,7 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
+      toast.error('Error loading messages');
     }
   };
 
@@ -217,6 +220,7 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     } catch (error) {
       console.error('Error sending message:', error);
+      toast.error('Failed to send message');
     }
   };
 

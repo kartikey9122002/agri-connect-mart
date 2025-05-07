@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +10,7 @@ import { Send, MessageCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from "sonner";
 
 interface Contact {
   id: string;
@@ -39,11 +41,13 @@ const SellerMessagesPage = () => {
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'buyers' | 'admins'>('buyers');
+  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchContacts = async () => {
       if (!user) return;
+      setIsLoading(true);
 
       try {
         // Fetch contacts based on active tab
@@ -59,6 +63,7 @@ const SellerMessagesPage = () => {
 
         if (!data) {
           setContacts([]);
+          setIsLoading(false);
           return;
         }
 
@@ -88,6 +93,8 @@ const SellerMessagesPage = () => {
         setContacts(contactsWithUnread);
       } catch (error: any) {
         console.error('Error fetching contacts:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -112,7 +119,7 @@ const SellerMessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, activeTab, selectedContact]);
+  }, [user, activeTab]);
 
   useEffect(() => {
     if (selectedContact) {
@@ -138,9 +145,13 @@ const SellerMessagesPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const generateChatThreadId = (sellerId: string, buyerId: string): string => {
-    const sortedIds = [sellerId, buyerId].sort();
-    return `chat_${sortedIds[0]}_${sortedIds[1]}`;
+  // Generate a UUID from two user IDs to use as thread ID
+  const generateChatThreadId = (userId1: string, userId2: string): string => {
+    // Sort the IDs to ensure consistent thread ID generation
+    const sortedIds = [userId1, userId2].sort();
+    // Create a thread ID by using UUIDs v5 (name-based)
+    // For simplicity, we'll just concatenate them with a prefix
+    return `thread_${sortedIds[0]}_${sortedIds[1]}`;
   };
 
   const fetchMessages = async (threadId: string) => {
@@ -181,6 +192,7 @@ const SellerMessagesPage = () => {
       setMessages(formattedMessages);
     } catch (error: any) {
       console.error('Error fetching messages:', error);
+      toast.error('Failed to load messages');
     }
   };
 
@@ -208,9 +220,10 @@ const SellerMessagesPage = () => {
         is_read: false
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('chat_messages')
-        .insert([messageRecord]);
+        .insert([messageRecord])
+        .select();
 
       if (error) {
         throw error;
@@ -229,24 +242,39 @@ const SellerMessagesPage = () => {
         ]);
 
       // Add message to state for immediate display
-      const newMsg: ChatMessage = {
-        id: Date.now().toString(), // Temporary ID until refresh
-        threadId: selectedContact.chatThreadId,
-        senderId: user.id,
-        senderName: user.name || 'Seller',
-        senderRole: 'seller',
-        receiverId: selectedContact.id,
-        receiverName: selectedContact.name,
-        content: newMessage,
-        timestamp: new Date().toISOString(),
-        isRead: false
-      };
+      // If data was returned, use it, otherwise generate a temporary ID
+      const newMsg: ChatMessage = data && data.length > 0 
+        ? {
+            id: data[0].id,
+            threadId: selectedContact.chatThreadId,
+            senderId: user.id,
+            senderName: user.name || 'Seller',
+            senderRole: 'seller',
+            receiverId: selectedContact.id,
+            receiverName: selectedContact.name,
+            content: newMessage,
+            timestamp: new Date().toISOString(),
+            isRead: false
+          }
+        : {
+            id: `temp-${Date.now()}`,
+            threadId: selectedContact.chatThreadId,
+            senderId: user.id,
+            senderName: user.name || 'Seller',
+            senderRole: 'seller',
+            receiverId: selectedContact.id,
+            receiverName: selectedContact.name,
+            content: newMessage,
+            timestamp: new Date().toISOString(),
+            isRead: false
+          };
       
       setMessages(prevMessages => [...prevMessages, newMsg]);
       setNewMessage('');
       scrollToBottom();
     } catch (error: any) {
       console.error('Error sending message:', error);
+      toast.error('Failed to send message');
     }
   };
 
@@ -301,7 +329,16 @@ const SellerMessagesPage = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="flex-grow overflow-y-auto p-2">
-                  {filteredContacts.length === 0 ? (
+                  {isLoading ? (
+                    <div className="space-y-3 p-4">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="animate-pulse flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-gray-200 mr-2"></div>
+                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : filteredContacts.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       {searchQuery ? "No buyers found matching your search" : "No buyers found"}
                     </div>
@@ -427,7 +464,16 @@ const SellerMessagesPage = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="flex-grow overflow-y-auto p-2">
-                  {filteredContacts.length === 0 ? (
+                  {isLoading ? (
+                    <div className="space-y-3 p-4">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="animate-pulse flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-gray-200 mr-2"></div>
+                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : filteredContacts.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       {searchQuery ? "No admins found matching your search" : "No admins found"}
                     </div>

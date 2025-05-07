@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -11,6 +10,7 @@ import { ChatMessage, UserRole } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
 
 interface ChatThread {
   id: string;
@@ -104,6 +104,7 @@ const BuyerMessagesPage = () => {
           const adminThreads: ChatThread[] = [];
           
           for (const admin of admins.data || []) {
+            // Generate consistent thread ID
             const threadId = generateChatThreadId(user.id, admin.id);
             
             // Check if there are any messages in this thread
@@ -157,6 +158,7 @@ const BuyerMessagesPage = () => {
         }
       } catch (error) {
         console.error('Error fetching chat threads:', error);
+        toast.error('Failed to load conversations');
       } finally {
         setIsLoadingThreads(false);
       }
@@ -240,8 +242,10 @@ const BuyerMessagesPage = () => {
   }, [selectedThreadId, user]);
 
   const generateChatThreadId = (buyerId: string, sellerId: string): string => {
+    // Sort the IDs to ensure consistent thread ID generation
     const sortedIds = [buyerId, sellerId].sort();
-    return `chat_${sortedIds[0]}_${sortedIds[1]}`;
+    // Create thread ID with consistent format
+    return `thread_${sortedIds[0]}_${sortedIds[1]}`;
   };
 
   const fetchMessages = async (threadId: string) => {
@@ -279,7 +283,7 @@ const BuyerMessagesPage = () => {
       setMessages(formattedMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
-      setMessages([]);
+      toast.error('Failed to load messages');
     } finally {
       setIsLoadingMessages(false);
     }
@@ -308,9 +312,10 @@ const BuyerMessagesPage = () => {
         is_read: false
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('chat_messages')
-        .insert([messageRecord]);
+        .insert([messageRecord])
+        .select();
 
       if (error) throw error;
 
@@ -342,24 +347,38 @@ const BuyerMessagesPage = () => {
       }
 
       // Add to messages locally for immediate display
-      const newMessage: ChatMessage = {
-        id: Date.now().toString(),
-        threadId: selectedThreadId,
-        senderId: user.id,
-        senderName: user.name || 'Buyer',
-        senderRole: 'buyer',
-        receiverId: selectedThread.seller_id,
-        receiverName: selectedThread.seller_name,
-        content: messageInput,
-        timestamp: new Date().toISOString(),
-        isRead: false
-      };
+      const newMessage: ChatMessage = data && data.length > 0 
+        ? {
+            id: data[0].id,
+            threadId: selectedThreadId,
+            senderId: user.id,
+            senderName: user.name || 'Buyer',
+            senderRole: 'buyer',
+            receiverId: selectedThread.seller_id,
+            receiverName: selectedThread.seller_name,
+            content: messageInput,
+            timestamp: new Date().toISOString(),
+            isRead: false
+          }
+        : {
+            id: `temp-${Date.now()}`,
+            threadId: selectedThreadId,
+            senderId: user.id,
+            senderName: user.name || 'Buyer',
+            senderRole: 'buyer',
+            receiverId: selectedThread.seller_id,
+            receiverName: selectedThread.seller_name,
+            content: messageInput,
+            timestamp: new Date().toISOString(),
+            isRead: false
+          };
 
       setMessages(prev => [...prev, newMessage]);
       setMessageInput('');
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     } catch (error) {
       console.error('Error sending message:', error);
+      toast.error('Failed to send message');
     }
   };
 
