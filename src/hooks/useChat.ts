@@ -3,13 +3,13 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage, UserRole } from '@/types';
-import { useToast } from '@/components/ui/use-toast';
 
 interface Contact {
   id: string;
   name: string;
   role: UserRole;
   chatThreadId: string;
+  unreadCount?: number;
 }
 
 interface MessageData {
@@ -31,7 +31,6 @@ export const useChat = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (isAuthenticated && user) {

@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { useChat } from '@/hooks/useChat';
 import { Product } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -16,46 +15,95 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface ProductChatDialogProps {
   product: Product;
   trigger?: React.ReactNode;
 }
 
+interface MessageData {
+  id: string;
+  thread_id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_role: string;
+  receiver_id: string;
+  receiver_name: string;
+  content: string;
+  created_at: string;
+  is_read: boolean;
+}
+
 const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger }) => {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [threadId, setThreadId] = useState<string | null>(null);
-  const { messages, isLoading, fetchMessages, sendMessage } = useChat();
+  const [messages, setMessages] = useState<MessageData[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
-  const { toast } = useToast();
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
   // Initialize chat when dialog opens
   const handleOpenChange = async (newOpen: boolean) => {
     if (newOpen && user) {
+      setIsLoading(true);
       const thread = await getOrCreateThread(product.sellerId, product.id);
       if (thread) {
         setThreadId(thread.id);
-        // Make sure to strip any prefixes when fetching messages
-        fetchMessages(thread.id);
+        await fetchMessages(thread.id);
       }
+      setIsLoading(false);
     }
     setOpen(newOpen);
   };
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (open) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, open]);
+
+  // Set up real-time subscription for new messages
+  useEffect(() => {
+    if (!threadId || !open) return;
+
+    const channel = supabase
+      .channel(`thread-${threadId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `thread_id=eq.${threadId}`
+        },
+        (payload) => {
+          const newMessage = payload.new as MessageData;
+          setMessages(prev => [...prev, newMessage]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [threadId, open]);
 
   // Function to get or create a chat thread
   const getOrCreateThread = async (sellerId: string, productId: string) => {
     if (!user) return null;
     
     try {
+      // Generate thread ID
+      const threadId = generateChatThreadId(user.id, sellerId);
+
       // Check if thread already exists
       const { data: existingThreads, error: findError } = await supabase
         .from('chat_threads')
         .select('*')
-        .eq('buyer_id', user.id)
-        .eq('seller_id', sellerId)
-        .eq('product_id', productId);
+        .eq('id', threadId);
       
       if (findError) throw findError;
       
@@ -67,6 +115,7 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
       const { data: newThread, error: createError } = await supabase
         .from('chat_threads')
         .insert([{
+          id: threadId,
           buyer_id: user.id,
           seller_id: sellerId,
           product_id: productId,
@@ -82,28 +131,95 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
       
       return newThread;
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: `Failed to initialize chat: ${error.message}`,
-        variant: 'destructive',
-      });
+      console.error('Failed to initialize chat:', error.message);
       return null;
     }
   };
 
-  // Load messages when threadId changes
-  useEffect(() => {
-    if (threadId) {
-      fetchMessages(threadId);
+  // Generate a consistent thread ID for any two users
+  const generateChatThreadId = (buyerId: string, sellerId: string): string => {
+    const sortedIds = [buyerId, sellerId].sort();
+    return `chat_${sortedIds[0]}_${sortedIds[1]}`;
+  };
+
+  // Fetch messages for a thread
+  const fetchMessages = async (threadId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('thread_id', threadId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      
+      if (data) {
+        setMessages(data);
+        
+        // Mark messages as read
+        if (user) {
+          await supabase
+            .from('chat_messages')
+            .update({ is_read: true })
+            .eq('thread_id', threadId)
+            .eq('receiver_id', user.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
     }
-  }, [threadId, fetchMessages]);
+  };
 
   // Handle sending a message
   const handleSendMessage = async () => {
-    if (message.trim() && threadId && user) {
-      await sendMessage(message, product.sellerId, product.sellerName, threadId);
+    if (!message.trim() || !threadId || !user) return;
+    
+    try {
+      const messageRecord = {
+        thread_id: threadId,
+        sender_id: user.id,
+        sender_name: user.name || 'Buyer',
+        sender_role: 'buyer',
+        receiver_id: product.sellerId,
+        receiver_name: product.sellerName,
+        receiver_role: 'seller',
+        content: message,
+        created_at: new Date().toISOString(),
+        is_read: false
+      };
+
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert([messageRecord]);
+
+      if (error) throw error;
+
+      // Update thread's updated_at timestamp
+      await supabase
+        .from('chat_threads')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', threadId);
+
+      // Add to local messages immediately
+      setMessages(prev => [...prev, messageRecord]);
       setMessage('');
+      
+      // Scroll to bottom
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
+  };
+
+  // Format timestamp for display
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
@@ -123,7 +239,13 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-agrigreen-600" />
-            Chat with {product.sellerName}
+            <div className="flex items-center">
+              <Avatar className="h-6 w-6 mr-2">
+                <AvatarImage src={`https://avatar.vercel.sh/${product.sellerName}.png`} alt={product.sellerName} />
+                <AvatarFallback>{product.sellerName.charAt(0).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              Chat with {product.sellerName}
+            </div>
           </DialogTitle>
           <DialogDescription>
             Ask questions about {product.name} or discuss order details
@@ -147,11 +269,11 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
                 messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex flex-col ${msg.senderId === user.id ? 'items-end' : 'items-start'}`}
+                    className={`flex flex-col ${msg.sender_id === user.id ? 'items-end' : 'items-start'}`}
                   >
                     <div
                       className={`max-w-[80%] rounded-lg px-3 py-2 ${
-                        msg.senderId === user.id
+                        msg.sender_id === user.id
                           ? 'bg-agrigreen-600 text-white'
                           : 'bg-gray-100 text-gray-800'
                       }`}
@@ -159,11 +281,12 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
                       {msg.content}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
-                      {new Date(msg.timestamp).toLocaleString()}
+                      {formatTimestamp(msg.created_at)}
                     </div>
                   </div>
                 ))
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             <div className="flex gap-2">
@@ -182,7 +305,7 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
               <Button
                 onClick={handleSendMessage}
                 disabled={message.trim() === ''}
-                className="bg-agrigreen-600 hover:bg-agrigreen-700"
+                className="self-end bg-agrigreen-600 hover:bg-agrigreen-700"
               >
                 <Send className="h-4 w-4" />
               </Button>

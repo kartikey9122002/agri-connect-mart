@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, MessageCircle } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,7 +33,6 @@ interface MessageData {
 
 const SellerMessagesPage = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -91,8 +88,6 @@ const SellerMessagesPage = () => {
         setContacts(contactsWithUnread);
       } catch (error: any) {
         console.error('Error fetching contacts:', error);
-        // Toast removed as it might be causing issues
-        // Instead, log the error to the console
       }
     };
 
@@ -186,8 +181,6 @@ const SellerMessagesPage = () => {
       setMessages(formattedMessages);
     } catch (error: any) {
       console.error('Error fetching messages:', error);
-      // Toast removed as it might be causing issues
-      // Instead, just log the error to console
     }
   };
 
@@ -223,6 +216,18 @@ const SellerMessagesPage = () => {
         throw error;
       }
 
+      // Update the thread's updated_at timestamp
+      await supabase
+        .from('chat_threads')
+        .upsert([
+          {
+            id: selectedContact.chatThreadId,
+            buyer_id: selectedContact.role === 'buyer' ? selectedContact.id : user.id, 
+            seller_id: user.id,
+            updated_at: new Date().toISOString()
+          }
+        ]);
+
       // Add message to state for immediate display
       const newMsg: ChatMessage = {
         id: Date.now().toString(), // Temporary ID until refresh
@@ -242,8 +247,6 @@ const SellerMessagesPage = () => {
       scrollToBottom();
     } catch (error: any) {
       console.error('Error sending message:', error);
-      // Toast removed as it might be causing issues
-      // Instead, just log the error to console
     }
   };
 

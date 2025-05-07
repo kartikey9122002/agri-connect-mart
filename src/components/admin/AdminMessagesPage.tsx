@@ -175,7 +175,6 @@ const AdminMessagesPage = () => {
 
   const fetchMessages = async (threadId: string) => {
     try {
-      // Use the correct thread_id format (with chat_ prefix)
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
@@ -213,11 +212,6 @@ const AdminMessagesPage = () => {
       setMessages(formattedMessages);
     } catch (error: any) {
       console.error('Error fetching messages:', error);
-      toast({
-        title: 'Error',
-        description: `Failed to fetch messages: ${error.message}`,
-        variant: 'destructive',
-      });
     }
   };
 
@@ -258,6 +252,18 @@ const AdminMessagesPage = () => {
       if (error) {
         throw error;
       }
+
+      // Update thread updated_at timestamp
+      await supabase
+        .from('chat_threads')
+        .upsert([
+          {
+            id: threadId,
+            buyer_id: selectedContact.role === 'buyer' ? selectedContact.id : user.id,
+            seller_id: selectedContact.role === 'seller' ? selectedContact.id : user.id,
+            updated_at: new Date().toISOString()
+          }
+        ]);
 
       // Add new message to state for immediate display
       const newMessageObj: ChatMessage = {
@@ -521,7 +527,7 @@ const AdminMessagesPage = () => {
               </Card>
             </div>
             
-            {/* Right side - messages - identical to buyers tab */}
+            {/* Right side - messages */}
             <div className="md:col-span-2">
               <Card className="h-[70vh] flex flex-col">
                 {selectedContact ? (
