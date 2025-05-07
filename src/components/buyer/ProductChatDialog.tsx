@@ -188,9 +188,10 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
         is_read: false
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('chat_messages')
-        .insert([messageRecord]);
+        .insert([messageRecord])
+        .select();
 
       if (error) throw error;
 
@@ -200,8 +201,16 @@ const ProductChatDialog: React.FC<ProductChatDialogProps> = ({ product, trigger 
         .update({ updated_at: new Date().toISOString() })
         .eq('id', threadId);
 
+      // If data was returned, use it, otherwise generate a temporary ID
+      const newMessage: MessageData = data && data.length > 0 
+        ? data[0] as MessageData 
+        : { 
+            id: `temp-${Date.now()}`, 
+            ...messageRecord 
+          };
+      
       // Add to local messages immediately
-      setMessages(prev => [...prev, messageRecord]);
+      setMessages(prev => [...prev, newMessage]);
       setMessage('');
       
       // Scroll to bottom

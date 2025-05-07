@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { MessageCircle, Search, Send, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChatMessage } from '@/types';
+import { ChatMessage, UserRole } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -267,7 +268,7 @@ const BuyerMessagesPage = () => {
         threadId: msg.thread_id || '',
         senderId: msg.sender_id,
         senderName: msg.sender_name || 'Unknown',
-        senderRole: msg.sender_role || 'buyer',
+        senderRole: (msg.sender_role as UserRole) || 'buyer',
         receiverId: msg.receiver_id,
         receiverName: msg.receiver_name || 'Unknown',
         content: msg.content,
