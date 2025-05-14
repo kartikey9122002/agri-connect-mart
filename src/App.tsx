@@ -9,6 +9,8 @@ import SchemesPage from '@/pages/SchemesPage';
 import ProductDetail from '@/pages/buyer/ProductDetail';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import NotFound from '@/pages/NotFound';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import ProductApproval from '@/pages/admin/ProductApproval';
@@ -38,6 +40,8 @@ function App() {
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/admin/product-approval" element={<ProductApproval />} />
             <Route path="/admin/manage-users" element={<ManageUsers />} />

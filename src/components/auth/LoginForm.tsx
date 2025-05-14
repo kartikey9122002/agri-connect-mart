@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,9 +67,9 @@ const LoginForm = () => {
           <label htmlFor="password" className="text-sm font-medium">
             Password
           </label>
-          <a href="/forgot-password" className="text-sm text-agrigreen-600 hover:text-agrigreen-800">
+          <Link to="/forgot-password" className="text-sm text-agrigreen-600 hover:text-agrigreen-800">
             Forgot Password?
-          </a>
+          </Link>
         </div>
         <Input
           id="password"
@@ -104,9 +105,9 @@ const LoginForm = () => {
       <div className="text-center mt-4">
         <p>
           Don't have an account?{' '}
-          <a href="/register" className="text-agrigreen-600 hover:text-agrigreen-800">
+          <Link to="/register" className="text-agrigreen-600 hover:text-agrigreen-800">
             Register
-          </a>
+          </Link>
         </p>
       </div>
       
